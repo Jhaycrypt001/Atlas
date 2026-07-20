@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Atlas documentation — the non-custodial on-chain settlement agent on X Layer. Quickstart, capabilities, HTTP API, and security posture." />
+<title>Atlas — Documentation</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  :root {
+    --font: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, "SF Mono", monospace;
+
+    --brand: #f17463;
+    --brand-ink: #2a0d08;
+
+    /* neutrals biased warm toward the coral, not pure grey */
+    --bg: #000000;
+    --surface: #131211;
+    --raised: #1d1b1a;
+    --line: #2a2724;
+    --line-soft: #201e1c;
+    --txt: #f6f4f2;
+    --txt-dim: #a6a09a;
+    --txt-mute: #6f6a65;
+
+    --good: #23c26b;
+    --warn: #ff9d3d;
+    --crit: #ff6b6b;
+
+    --r-sm: 6px; --r: 10px; --r-lg: 14px;
+    --maxw: 1080px;
+    --readw: 70ch;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #faf8f6; --surface: #ffffff; --raised: #ffffff;
+      --line: #e7e2dc; --line-soft: #efeae4;
+      --txt: #17140f; --txt-dim: #55504a; --txt-mute: #8a847d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --surface: #131211; --raised: #1d1b1a;
+    --line: #2a2724; --line-soft: #201e1c;
+    --txt: #f6f4f2; --txt-dim: #a6a09a; --txt-mute: #6f6a65;
+  }
+  :root[data-theme="light"] {
+    --bg: #faf8f6; --surface: #ffffff; --raised: #ffffff;
+    --line: #e7e2dc; --line-soft: #efeae4;
+    --txt: #17140f; --txt-dim: #55504a; --txt-mute: #8a847d;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt);
+    font-family: var(--font); font-size: 16px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); max-width: var(--maxw); margin: 0 auto; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  /* ---- sidebar ---- */
+  aside {
+    position: sticky; top: 0; align-self: start; height: 100vh;
+    padding: 34px 20px 34px 24px; border-right: 1px solid var(--line-soft);
+    overflow-y: auto;
+  }
+  @media (max-width: 860px) {
+    aside { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+  }
+  .mark { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.02em; font-size: 17px; margin-bottom: 4px; }
+  .glyph { width: 26px; height: 26px; display: block; flex: none; }
+  .mark small { display: block; font-weight: 500; font-size: 11.5px; color: var(--txt-mute); letter-spacing: 0; margin-top: 2px; }
+  nav.toc { margin-top: 26px; display: flex; flex-direction: column; gap: 2px; }
+  nav.toc .grp { font-size: 10.5px; text-transform: uppercase; letter-spacing: .12em; color: var(--txt-mute); margin: 18px 0 6px; }
+  nav.toc a { font-size: 13.5px; color: var(--txt-dim); text-decoration: none; padding: 5px 10px; border-radius: var(--r-sm); border-left: 2px solid transparent; }
+  nav.toc a:hover { color: var(--txt); background: var(--surface); }
+
+  /* ---- content ---- */
+  main { padding: 44px clamp(20px, 5vw, 60px) 96px; min-width: 0; }
+  section { scroll-margin-top: 24px; }
+  section + section { margin-top: 60px; }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .16em; color: var(--brand); font-weight: 600; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; letter-spacing: -.03em; font-weight: 700; margin: 14px 0 0; text-wrap: balance; max-width: 18ch; }
+  h2 { font-size: 23px; letter-spacing: -.02em; font-weight: 700; margin: 0 0 4px; text-wrap: balance; }
+  h3 { font-size: 15px; font-weight: 650; margin: 0 0 4px; }
+  p { color: var(--txt-dim); max-width: var(--readw); }
+  .lede { font-size: 19px; line-height: 1.55; color: var(--txt); max-width: 60ch; margin-top: 18px; }
+  .sec-intro { margin-top: 2px; margin-bottom: 22px; }
+
+  code, .mono { font-family: var(--mono); font-size: .875em; }
+  :not(pre) > code { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 1px 6px; color: var(--txt); }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; overflow-x: auto; margin: 0; }
+  pre code { font-size: 13px; line-height: 1.7; color: var(--txt); }
+  .cm { color: var(--txt-mute); }
+  .kw { color: var(--brand); }
+
+  /* ---- hero flow ---- */
+  .hero { padding-bottom: 8px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-family: var(--mono); color: var(--txt-dim); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
+
+  .flow { margin-top: 32px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 22px; }
+  .flow-title { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--txt-mute); margin-bottom: 18px; }
+  .rail { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; align-items: start; }
+  @media (max-width: 620px) { .rail { grid-template-columns: 1fr 1fr; gap: 18px 0; } }
+  .node { position: relative; padding-right: 20px; }
+  .node .num { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line); color: var(--txt-dim); font-family: var(--mono); font-size: 12px; display: grid; place-items: center; margin-bottom: 12px; background: var(--raised); }
+  .node.sign .num { border-color: var(--brand); color: var(--brand); }
+  .node.done .num { border-color: var(--good); color: var(--good); }
+  .node h4 { margin: 0 0 4px; font-size: 13.5px; }
+  .node p { margin: 0; font-size: 12.5px; color: var(--txt-mute); max-width: none; }
+  .node .who { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; color: var(--txt-mute); }
+  .node.sign .who { color: var(--brand); }
+  .node .num::after { content: ""; position: absolute; top: 12px; left: 34px; right: 6px; height: 1.5px; background: linear-gradient(90deg, var(--line), transparent); }
+  .node:last-child .num::after { display: none; }
+  @media (max-width: 620px) { .node .num::after { display: none; } }
+
+  /* ---- capability grid ---- */
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+  @media (max-width: 620px) { .caps { grid-template-columns: 1fr; } }
+  .cap { border: 1px solid var(--line-soft); background: var(--surface); border-radius: var(--r); padding: 16px 18px; }
+  .cap .k { font-family: var(--mono); font-size: 11px; color: var(--brand); letter-spacing: .02em; }
+  .cap h3 { margin: 6px 0 4px; }
+  .cap p { font-size: 13.5px; margin: 0; }
+
+  /* ---- tables ---- */
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 540px; }
+  th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--txt-mute); font-weight: 600; background: var(--surface); }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { color: var(--txt); }
+  td.mono, .m { font-family: var(--mono); font-size: 12.5px; }
+  .method { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 4px; letter-spacing: .03em; }
+  .get { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+  .post { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--brand); }
+
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .chip.good { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+  .chip.warn { background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+  .chip.crit { background: color-mix(in srgb, var(--crit) 15%, transparent); color: var(--crit); }
+
+  /* ---- callout ---- */
+  .note { border: 1px solid var(--line); border-left: 2px solid var(--brand); background: var(--surface); border-radius: var(--r); padding: 14px 16px; margin-top: 18px; font-size: 13.5px; color: var(--txt-dim); max-width: var(--readw); }
+  .note b { color: var(--txt); }
+
+  footer { max-width: var(--maxw); margin: 0 auto; padding: 28px clamp(20px,5vw,60px); border-top: 1px solid var(--line-soft); color: var(--txt-mute); font-size: 12.5px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  footer .mono { font-size: 12px; }
+
+  a.inline { color: var(--brand); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--brand) 40%, transparent); }
+  a.inline:hover { border-bottom-color: var(--brand); }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <aside>
+    <div class="mark">
+      <svg class="glyph" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="atlasGd" x1="4" y1="28" x2="28" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#e5604e"/><stop offset="1" stop-color="#f6a08f"/></linearGradient></defs>
+        <path d="M16 3 L28 28 L22.2 28 L16 12.6 L9.8 28 L4 28 Z" fill="url(#atlasGd)"/>
+        <path d="M9.4 22.2 Q16 19.4 22.6 22.2" stroke="#0a0a0a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>
+        <ellipse cx="16" cy="17.5" rx="10.5" ry="4.3" transform="rotate(-24 16 17.5)" stroke="url(#atlasGd)" stroke-width="1.5" fill="none" opacity=".8"/>
+        <circle cx="24.7" cy="11.6" r="1.7" fill="#f17463"/>
+        <circle cx="16" cy="16.4" r="2.5" fill="#f17463"/>
+      </svg>
+      <span>Atlas<small>docs · v0.1</small></span>
+    </div>
+    <nav class="toc">
+      <div class="grp">Start</div>
+      <a href="#overview">Overview</a>
+      <a href="#quickstart">Quickstart</a>
+      <a href="#flow">Settlement flow</a>
+      <div class="grp">Reference</div>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#api">HTTP API</a>
+      <a href="#config">Configuration</a>
+      <div class="grp">Operate</div>
+      <a href="#security">Security</a>
+      <a href="#contracts">Contracts</a>
+    </nav>
+  </aside>
+
+  <main>
+    <!-- OVERVIEW / HERO -->
+    <section id="overview" class="hero">
+      <div class="eyebrow">OKX.AI ASP · X Layer</div>
+      <h1>An agent that settles real money, non-custodially.</h1>
+      <p class="lede">
+        Atlas turns a plain-English instruction — <em>“pay this freelancer 5 USDC once the work is verified”</em> —
+        into a real on-chain settlement. The user funds and signs from their own wallet; the agent
+        orchestrates escrow and release but never holds the money.
+      </p>
+      <div class="badges">
+        <span class="badge"><span class="dot"></span> Live on X Layer testnet · chain 1952</span>
+        <span class="badge">4 capabilities</span>
+        <span class="badge">Non-custodial escrow</span>
+        <span class="badge">0.5% provable fee</span>
+      </div>
+
+      <div class="flow">
+        <div class="flow-title">One settlement, four steps</div>
+        <div class="rail">
+          <div class="node">
+            <div class="num">1</div>
+            <div class="who">Agent</div>
+            <h4>Plan &amp; deploy</h4>
+            <p>An LLM extracts intent, amount, and recipient; the agent deploys an escrow whose funder is you.</p>
+          </div>
+          <div class="node sign">
+            <div class="num">2</div>
+            <div class="who">You sign</div>
+            <h4>Approve</h4>
+            <p>Authorize the escrow to move your USDC — signed in your own wallet.</p>
+          </div>
+          <div class="node sign">
+            <div class="num">3</div>
+            <div class="who">You sign</div>
+            <h4>Lock</h4>
+            <p>Your funds move into escrow. The agent never custodies them.</p>
+          </div>
+          <div class="node done">
+            <div class="num">✓</div>
+            <div class="who">Agent</div>
+            <h4>Settle</h4>
+            <p>After proof, the agent releases <span class="m">amount − fee</span> to the payee, fee to treasury.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICKSTART -->
+    <section id="quickstart">
+      <div class="eyebrow">Get running</div>
+      <h2>Quickstart</h2>
+      <p class="sec-intro">Two minutes from clone to a live settlement on testnet.</p>
+      <pre><code><span class="cm"># install &amp; compile contracts</span>
+npm install
+node scripts/compile.mjs        <span class="cm"># contracts/ -&gt; artifacts/</span>
+
+<span class="cm"># start the ASP server + live console</span>
+npm run asp                     <span class="cm"># -&gt; http://localhost:4173</span></code></pre>
+      <p style="margin-top:18px">Open <code>/app</code>, click <b style="color:var(--txt)">Connect wallet</b>, and type an instruction:</p>
+      <pre style="margin-top:10px"><code>Pay 0x7099…79C8 5 USDC for the logo</code></pre>
+      <div class="note">
+        <b>You need testnet OKB (gas) and TestUSDC</b> in the connected wallet — funds come from you, not the agent.
+        A pay-and-verify flow is ~3 transactions, so keep a small gas buffer.
+      </div>
+    </section>
+
+    <!-- FLOW detail -->
+    <section id="flow">
+      <div class="eyebrow">How it settles</div>
+      <h2>Non-custodial by construction</h2>
+      <p class="sec-intro">
+        Every value-moving capability routes through one escrow contract. The agent’s key deploys the escrow and
+        triggers release, but the <b style="color:var(--txt)">contract</b> — not the agent — holds funds and enforces who gets paid.
+        A compromised agent key cannot redirect escrowed money: it can only release to the fixed payee or refund the original funder.
+      </p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Guarantee</th><th>Enforced by</th></tr></thead>
+          <tbody>
+            <tr><td>Funds come from the user, not the agent</td><td class="mono">Escrow.funder = connected wallet; lock() pulls from funder</td></tr>
+            <tr><td>Only the agent can release</td><td class="mono">release() gated: require(msg.sender == agent)</td></tr>
+            <tr><td>Refund returns to the funder</td><td class="mono">refund() transfers to funder, not agent</td></tr>
+            <tr><td>Fee is skimmed on settlement</td><td class="mono">release() pays payee amount−fee, treasury fee (0.5%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CAPABILITIES -->
+    <section id="capabilities">
+      <div class="eyebrow">What it does</div>
+      <h2>Four capabilities</h2>
+      <p class="sec-intro">
+        Each is a plugin over the same kernel — it inherits settlement, the spend gate, the ledger, and the ASP surface for free.
+      </p>
+      <div class="caps">
+        <div class="cap"><div class="k">pay</div><h3>Pay</h3><p>Send a payment held in escrow until conditions are met, released on completion.</p></div>
+        <div class="cap"><div class="k">getPaid</div><h3>Get paid</h3><p>Issue an invoice and collect the client’s funds into escrow.</p></div>
+        <div class="cap"><div class="k">split</div><h3>Split</h3><p>Divide an amount across several recipients — one escrow per payee, each funded by you.</p></div>
+        <div class="cap"><div class="k">verify</div><h3>Verify</h3><p>Release only after a proof passes: LLM receipt check, signed webhook, or on-chain attestation.</p></div>
+      </div>
+    </section>
+
+    <!-- API -->
+    <section id="api">
+      <div class="eyebrow">Reference</div>
+      <h2>HTTP API</h2>
+      <p class="sec-intro">The connected-wallet flow is the safe path. The agent-funded <code>/intent</code> route is disabled unless <code>DEMO_MODE=1</code>.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Purpose</th><th>Auth</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method get">GET</span></td><td class="mono">/.well-known/asp.yaml</td><td>asp/1.0 identity manifest</td><td class="m">public</td></tr>
+            <tr><td><span class="method get">GET</span></td><td class="mono">/asp/feed</td><td>Capability feed</td><td class="m">ASP-Sig</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/asp/inbox</td><td>Accept an intent message</td><td class="m">ASP-Sig</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/asp/run</td><td>run() — free, or x402 pay-per-call</td><td class="m">x402*</td></tr>
+            <tr><td><span class="method get">GET</span></td><td class="mono">/wallet/config</td><td>Chain + escrow ABI for the browser</td><td class="m">public</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/wallet/prepare</td><td>Deploy a user-funded escrow</td><td class="m">rate-limited</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/wallet/prepare-split</td><td>Deploy N escrows for a split</td><td class="m">rate-limited</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/wallet/release</td><td>Release after lock + proof</td><td class="m">rate-limited</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/wallet/refund</td><td>Recover a stuck escrow to the funder</td><td class="m">rate-limited</td></tr>
+            <tr><td><span class="method post">POST</span></td><td class="mono">/intent</td><td>Agent-funded demo path</td><td class="m">DEMO_MODE</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note"><b>ASP-Sig</b> — <code>Authorization: ASP-Sig {handle}:{ts}:{sig}</code>, Ed25519 over <code>{handle}:{ts}:{method}:{path}</code>, ±5 min replay window. <b>x402*</b> — enabled with <code>ASP_PAID=1</code>: a <span class="m">402</span> challenge, a signed authorization, a <span class="m">PAYMENT-RESPONSE</span> proof.</div>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="config">
+      <div class="eyebrow">Setup</div>
+      <h2>Configuration</h2>
+      <p class="sec-intro">All tunables live in <code>.env</code>. Secrets are git-ignored and must be delivered out-of-band.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Purpose</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">PK</td><td>Funded agent key (orchestration + gas)</td><td class="m">—</td></tr>
+            <tr><td class="mono">XLAYER_USDC</td><td>Stablecoin address (swap for mainnet)</td><td class="m">TestUSDC</td></tr>
+            <tr><td class="mono">LLM_API_KEY</td><td>LLM planner (falls back to rules)</td><td class="m">—</td></tr>
+            <tr><td class="mono">DEMO_MODE</td><td>Enable agent-funded /intent (unauthenticated)</td><td class="m">0</td></tr>
+            <tr><td class="mono">MAX_VALUE_USDC</td><td>Per-tx spend cap</td><td class="m">10000</td></tr>
+            <tr><td class="mono">RATE_MAX / RATE_WINDOW_MS</td><td>Rate limit on spending routes</td><td class="m">20 / 60000</td></tr>
+            <tr><td class="mono">LEDGER_MAX</td><td>Max tasks kept in memory</td><td class="m">500</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECURITY -->
+    <section id="security">
+      <div class="eyebrow">Operate safely</div>
+      <h2>Security posture</h2>
+      <p class="sec-intro">Atlas moves real money, so the defaults fail closed. Controls, by what they protect:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Control</th><th>Behavior</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>User-funded settlement</td><td>Escrow funded &amp; signed by the user; agent never custodies</td><td><span class="chip good">enforced</span></td></tr>
+            <tr><td>Agent-funded path</td><td><code>/intent</code> is unauthenticated — off unless <span class="m">DEMO_MODE=1</span></td><td><span class="chip good">closed</span></td></tr>
+            <tr><td>Proof-gated release</td><td><code>verify</code> rejects self-referential proof; needs real evidence</td><td><span class="chip good">enforced</span></td></tr>
+            <tr><td>Spend cap</td><td>Value tasks over <span class="m">MAX_VALUE_USDC</span> are blocked</td><td><span class="chip good">enforced</span></td></tr>
+            <tr><td>Rate limiting</td><td>Per-IP throttle on gas/fund routes</td><td><span class="chip good">enforced</span></td></tr>
+            <tr><td>TLS fail-closed</td><td>Refuses to start with TLS verification off</td><td><span class="chip warn">testnet override</span></td></tr>
+            <tr><td>Error leakage</td><td>Generic client errors; detail logged server-side</td><td><span class="chip good">contained</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <b>Before a public deploy:</b> keep <code>DEMO_MODE=0</code>, serve over HTTPS (unset <code>ALLOW_INSECURE_TLS</code>),
+        rotate <code>PK</code> if it has ever been shared, and put a gateway rate limiter in front for multi-instance.
+      </div>
+    </section>
+
+    <!-- CONTRACTS -->
+    <section id="contracts">
+      <div class="eyebrow">On-chain</div>
+      <h2>Contracts</h2>
+      <p class="sec-intro">Deployed and exercised on X Layer testnet. Every address and tx is verifiable on the explorer.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Contract</th><th>Role</th><th>Address</th></tr></thead>
+          <tbody>
+            <tr><td>Escrow</td><td>Non-custodial lock / release / refund</td><td class="m">0x8fc9…de32e</td></tr>
+            <tr><td>TestUSDC</td><td>Demo stablecoin (mainnet = address swap)</td><td class="m">0x732c…79364</td></tr>
+            <tr><td>Attestation</td><td>On-chain proof records for <code>verify</code></td><td class="m">0x16f2…ae4b</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:16px; font-size:13.5px">
+        Mainnet is an address swap — point <code>XLAYER_USDC</code> at the canonical stablecoin. No code changes;
+        everything speaks the standard ERC-20 interface. See <a class="inline" href="#config">Configuration</a>.
+      </p>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <span>Atlas — concurrent on-chain operations agent · OKX.AI ASP on X Layer</span>
+  <span class="mono">pay · getPaid · split · verify</span>
+</footer>
+
+</body>
+</html>

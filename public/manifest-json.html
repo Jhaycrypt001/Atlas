@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas — Manifest (JSON)</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  :root {
+    --font: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, "SF Mono", monospace;
+    --brand: #f17463; --brand-hover: #e5604e;
+    --bg: #000; --surface: #131211; --raised: #1d1b1a;
+    --line: #2a2724; --line-soft: #201e1c;
+    --txt: #f6f4f2; --dim: #a6a09a; --mute: #6f6a65;
+    /* JSON syntax colors */
+    --j-key: #f6a08f; --j-str: #23c26b; --j-num: #54a2ff; --j-bool: #ff9d3d; --j-punct: #6f6a65;
+    --r: 10px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#faf8f6; --surface:#fff; --raised:#f6f2ee; --line:#e7e2dc; --line-soft:#efeae4; --txt:#17140f; --dim:#55504a; --mute:#8a847d;
+            --j-key:#c0492f; --j-str:#137a3b; --j-num:#215fbd; --j-bool:#b45a09; --j-punct:#8a847d; }
+  }
+  :root[data-theme="dark"] { --bg:#000; --surface:#131211; --raised:#1d1b1a; --line:#2a2724; --line-soft:#201e1c; --txt:#f6f4f2; --dim:#a6a09a; --mute:#6f6a65;
+            --j-key:#f6a08f; --j-str:#23c26b; --j-num:#54a2ff; --j-bool:#ff9d3d; --j-punct:#6f6a65; }
+  :root[data-theme="light"] { --bg:#faf8f6; --surface:#fff; --raised:#f6f2ee; --line:#e7e2dc; --line-soft:#efeae4; --txt:#17140f; --dim:#55504a; --mute:#8a847d;
+            --j-key:#c0492f; --j-str:#137a3b; --j-num:#215fbd; --j-bool:#b45a09; --j-punct:#8a847d; }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  nav { border-bottom: 1px solid var(--line-soft); }
+  .nav-inner { display:flex; align-items:center; justify-content:space-between; height:64px; max-width:860px; margin:0 auto; padding:0 24px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:-.01em; text-decoration:none; }
+  .brand svg { width:26px; height:26px; }
+  .nav-links { display:flex; gap:20px; font-size:14px; color:var(--dim); }
+  .nav-links a { text-decoration:none; }
+  .nav-links a:hover { color:var(--txt); }
+
+  header.hd { padding: 44px 0 20px; }
+  .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:.16em; color:var(--brand); font-weight:600; }
+  h1 { font-size: clamp(24px, 4vw, 32px); letter-spacing:-.02em; font-weight:700; margin:12px 0 6px; }
+  .sub { color:var(--dim); font-size:15px; max-width:60ch; margin:0; }
+
+  .toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:-1px; }
+  .path { font-family:var(--mono); font-size:12.5px; color:var(--mute); }
+  .actions { display:flex; gap:8px; }
+  .btn { font-family:var(--font); font-size:13px; font-weight:600; border-radius:8px; padding:7px 13px; border:1px solid var(--line); background:transparent; color:var(--txt); cursor:pointer; text-decoration:none; }
+  .btn:hover { border-color:var(--mute); }
+  .btn.copied { border-color:var(--j-str); color:var(--j-str); }
+
+  .code-wrap { border:1px solid var(--line); border-radius:var(--r); background:var(--surface); overflow:auto; margin: 10px 0 40px; }
+  pre { margin:0; padding:20px 22px; font-family:var(--mono); font-size:12.5px; line-height:1.75; tab-size:2; }
+  .j-key { color:var(--j-key); }
+  .j-str { color:var(--j-str); }
+  .j-num { color:var(--j-num); }
+  .j-bool { color:var(--j-bool); }
+  .j-punct { color:var(--j-punct); }
+  .loading { color:var(--mute); padding:30px 0; }
+  :focus-visible { outline:2px solid var(--brand); outline-offset:2px; border-radius:3px; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="jg" x1="4" y1="28" x2="28" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#e5604e"/><stop offset="1" stop-color="#f6a08f"/></linearGradient></defs>
+        <path d="M16 3 L28 28 L22.2 28 L16 12.6 L9.8 28 L4 28 Z" fill="url(#jg)"/>
+        <path d="M9.4 22.2 Q16 19.4 22.6 22.2" stroke="#0a0a0a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>
+        <ellipse cx="16" cy="17.5" rx="10.5" ry="4.3" transform="rotate(-24 16 17.5)" stroke="url(#jg)" stroke-width="1.5" fill="none" opacity=".8"/>
+        <circle cx="24.7" cy="11.6" r="1.7" fill="#f17463"/><circle cx="16" cy="16.4" r="2.5" fill="#f17463"/>
+      </svg>
+      Atlas
+    </a>
+    <div class="nav-links"><a href="/identity">Identity</a><a href="/docs">Docs</a><a href="/">Home</a></div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <header class="hd">
+    <div class="eyebrow">asp/1.0 · raw manifest</div>
+    <h1>Identity manifest</h1>
+    <p class="sub">The exact machine-readable document OKX.AI and other agents fetch from <code style="font-family:var(--mono);font-size:12.5px">/.well-known/asp.yaml</code> to discover Atlas. Formatted for reading — the wire response is identical.</p>
+  </header>
+
+  <div class="toolbar">
+    <span class="path">GET /.well-known/asp.yaml</span>
+    <div class="actions">
+      <button class="btn" id="copy">Copy JSON</button>
+      <a class="btn" href="/.well-known/asp.yaml" target="_blank" rel="noopener">Raw endpoint ↗</a>
+    </div>
+  </div>
+  <div class="code-wrap"><pre id="out"><span class="loading">Loading…</span></pre></div>
+</main>
+
+<script>
+  let rawText = '';
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]));
+
+  // Syntax-highlight a pretty-printed JSON string into spans.
+  function highlight(json) {
+    return esc(json).replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
+      (m) => {
+        let cls = 'j-num';
+        if (/^"/.test(m)) cls = /:$/.test(m) ? 'j-key' : 'j-str';
+        else if (/true|false|null/.test(m)) cls = 'j-bool';
+        return `<span class="${cls}">${m}</span>`;
+      }
+    ).replace(/([{}\[\],])/g, '<span class="j-punct">$1</span>');
+  }
+
+  fetch('/manifest').then((r) => r.json()).then((m) => {
+    rawText = JSON.stringify(m, null, 2);
+    document.getElementById('out').innerHTML = highlight(rawText);
+  }).catch(() => {
+    document.getElementById('out').innerHTML = '<span class="loading">Could not load the manifest — the server may be offline.</span>';
+  });
+
+  document.getElementById('copy').onclick = async (e) => {
+    if (!rawText) return;
+    try { await navigator.clipboard.writeText(rawText); } catch {}
+    const b = e.target; b.textContent = 'Copied ✓'; b.classList.add('copied');
+    setTimeout(() => { b.textContent = 'Copy JSON'; b.classList.remove('copied'); }, 1600);
+  };
+</script>
+</body>
+</html>

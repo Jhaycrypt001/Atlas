@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atlas — Identity Manifest</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<style>
+  :root {
+    --font: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, "SF Mono", monospace;
+    --brand: #f17463; --brand-hover: #e5604e;
+    --bg: #000; --surface: #131211; --raised: #1d1b1a;
+    --line: #2a2724; --line-soft: #201e1c;
+    --txt: #f6f4f2; --dim: #a6a09a; --mute: #6f6a65;
+    --good: #23c26b; --warn: #ff9d3d;
+    --r: 10px; --r-lg: 14px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#faf8f6; --surface:#fff; --raised:#fff; --line:#e7e2dc; --line-soft:#efeae4; --txt:#17140f; --dim:#55504a; --mute:#8a847d; }
+  }
+  :root[data-theme="dark"] { --bg:#000; --surface:#131211; --raised:#1d1b1a; --line:#2a2724; --line-soft:#201e1c; --txt:#f6f4f2; --dim:#a6a09a; --mute:#6f6a65; }
+  :root[data-theme="light"] { --bg:#faf8f6; --surface:#fff; --raised:#fff; --line:#e7e2dc; --line-soft:#efeae4; --txt:#17140f; --dim:#55504a; --mute:#8a847d; }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:var(--font); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  a { color: inherit; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+  nav { border-bottom: 1px solid var(--line-soft); }
+  .nav-inner { display:flex; align-items:center; justify-content:space-between; height:64px; max-width:860px; margin:0 auto; padding:0 24px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; letter-spacing:-.01em; text-decoration:none; }
+  .brand svg { width:26px; height:26px; }
+  .nav-links { display:flex; gap:20px; font-size:14px; color:var(--dim); }
+  .nav-links a { text-decoration:none; }
+  .nav-links a:hover { color:var(--txt); }
+
+  header.hd { padding: 56px 0 8px; }
+  .eyebrow { font-size:11px; text-transform:uppercase; letter-spacing:.16em; color:var(--brand); font-weight:600; }
+  h1 { font-size: clamp(28px, 5vw, 40px); letter-spacing:-.03em; font-weight:700; margin:12px 0 0; }
+  .bio { color:var(--dim); font-size:18px; max-width:56ch; margin-top:12px; }
+  .meta-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+  .pill { display:inline-flex; align-items:center; gap:7px; font-family:var(--mono); font-size:12px; color:var(--dim); border:1px solid var(--line); border-radius:999px; padding:5px 12px; }
+  .pill .dot { width:6px; height:6px; border-radius:50%; background:var(--good); box-shadow:0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
+
+  section { padding: 40px 0; }
+  section + section { border-top: 1px solid var(--line-soft); }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--mute); font-weight:600; margin:0 0 18px; }
+
+  .caps { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:600px){ .caps { grid-template-columns:1fr; } }
+  .cap { border:1px solid var(--line-soft); background:var(--surface); border-radius:var(--r); padding:16px 18px; }
+  .cap .top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .cap .name { font-family:var(--mono); font-size:13px; color:var(--brand); }
+  .risk { font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em; padding:2px 8px; border-radius:999px; }
+  .risk.value { background:color-mix(in srgb, var(--warn) 15%, transparent); color:var(--warn); }
+  .risk.logic { background:color-mix(in srgb, var(--good) 15%, transparent); color:var(--good); }
+  .cap p { margin:8px 0 10px; font-size:13.5px; color:var(--dim); }
+  .cap .ex { font-family:var(--mono); font-size:11.5px; color:var(--mute); border-top:1px solid var(--line-soft); padding-top:9px; }
+
+  .kv { display:grid; grid-template-columns: 140px 1fr; gap:10px 18px; font-size:13.5px; }
+  @media (max-width:600px){ .kv { grid-template-columns:1fr; gap:4px 0; } .kv dt { margin-top:10px; } }
+  .kv dt { color:var(--mute); }
+  .kv dd { margin:0; font-family:var(--mono); font-size:12.5px; color:var(--txt); word-break:break-all; }
+  .kv dd a { color:var(--brand); text-decoration:none; }
+  .kv dd a:hover { text-decoration:underline; }
+
+  .raw { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .btn { font-size:13.5px; font-weight:600; text-decoration:none; border-radius:8px; padding:9px 16px; }
+  .btn-ghost { border:1px solid var(--line); color:var(--txt); }
+  .btn-ghost:hover { border-color:var(--mute); }
+
+  footer { border-top:1px solid var(--line-soft); padding:22px 0; color:var(--mute); font-size:12.5px; }
+  .loading { color:var(--mute); padding:40px 0; }
+  :focus-visible { outline:2px solid var(--brand); outline-offset:2px; border-radius:3px; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="4" y1="28" x2="28" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#e5604e"/><stop offset="1" stop-color="#f6a08f"/></linearGradient></defs>
+        <path d="M16 3 L28 28 L22.2 28 L16 12.6 L9.8 28 L4 28 Z" fill="url(#mg)"/>
+        <path d="M9.4 22.2 Q16 19.4 22.6 22.2" stroke="#0a0a0a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>
+        <ellipse cx="16" cy="17.5" rx="10.5" ry="4.3" transform="rotate(-24 16 17.5)" stroke="url(#mg)" stroke-width="1.5" fill="none" opacity=".8"/>
+        <circle cx="24.7" cy="11.6" r="1.7" fill="#f17463"/><circle cx="16" cy="16.4" r="2.5" fill="#f17463"/>
+      </svg>
+      Atlas
+    </a>
+    <div class="nav-links"><a href="/">Home</a><a href="/docs">Docs</a><a href="/app">Console</a></div>
+  </div>
+</nav>
+
+<main class="wrap" id="app">
+  <p class="loading">Loading identity manifest…</p>
+</main>
+
+<footer class="wrap">Served from the live <code>asp/1.0</code> manifest. This is the human view — machines read the raw endpoint.</footer>
+
+<script>
+  const el = document.getElementById('app');
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]));
+
+  fetch('/manifest').then((r) => r.json()).then((m) => {
+    const svc = (m.agent?.services) || [];
+    const ep = m.endpoints || {};
+    const key = m.verification?.public_key || '';
+    el.innerHTML = `
+      <header class="hd">
+        <div class="eyebrow">${esc(m.protocol || 'asp/1.0')} · identity</div>
+        <h1>${esc(m.entity?.name || 'Atlas')}</h1>
+        <p class="bio">${esc(m.agent?.tagline || m.entity?.bio || '')}</p>
+        <div class="meta-row">
+          <span class="pill"><span class="dot"></span> ${esc(m.entity?.type || 'agent')}</span>
+          <span class="pill">@${esc(m.entity?.handle || 'atlas')}</span>
+          <span class="pill">${esc(m.agent?.category || '')}</span>
+          <span class="pill">since ${esc(m.entity?.created_at || '')}</span>
+        </div>
+      </header>
+
+      <section>
+        <h2>Capabilities · ${svc.length}</h2>
+        <div class="caps">
+          ${svc.map((s) => `
+            <div class="cap">
+              <div class="top"><span class="name">${esc(s.name)}</span><span class="risk ${esc(s.risk)}">${esc(s.risk)}</span></div>
+              <p>${esc(s.description)}</p>
+              ${(s.examples && s.examples[0]) ? `<div class="ex">e.g. “${esc(s.examples[0])}”</div>` : ''}
+            </div>`).join('')}
+        </div>
+      </section>
+
+      <section>
+        <h2>Endpoints</h2>
+        <dl class="kv">
+          ${Object.entries(ep).map(([k, v]) => `<dt>${esc(k)}</dt><dd><a href="${esc(v)}">${esc(v)}</a></dd>`).join('')}
+        </dl>
+      </section>
+
+      <section>
+        <h2>Verification</h2>
+        <dl class="kv">
+          <dt>Signature</dt><dd>Ed25519 · ASP-Sig</dd>
+          <dt>Public key</dt><dd>${esc(key)}</dd>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Raw manifest</h2>
+        <p style="color:var(--dim);font-size:13.5px;margin-top:0">The machine-readable document OKX.AI and other agents fetch to discover Atlas.</p>
+        <div class="raw">
+          <a class="btn btn-ghost" href="/manifest.json.html">View JSON</a>
+          <a class="btn btn-ghost" href="/.well-known/asp.yaml" target="_blank" rel="noopener">Raw endpoint ↗</a>
+        </div>
+      </section>`;
+  }).catch((e) => {
+    el.innerHTML = `<p class="loading">Could not load the manifest. The server may be offline. <a href="/.well-known/asp.yaml" style="color:var(--brand)">Try the raw endpoint</a>.</p>`;
+  });
+</script>
+</body>
+</html>

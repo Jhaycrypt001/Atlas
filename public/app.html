@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas Console · Live Operations</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Notus primary is "Inter Display"; Inter is the closest Google-hosted match. Mono is DM Mono (exact). -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ===== Notus design tokens (extracted from the template stylesheet) ===== */
+      :root {
+        --font-primary: "Inter", "Inter Display", sans-serif;
+        --font-mono: "DM Mono", ui-monospace, monospace;
+
+        --brand: #f17463; /* coral: highlighted word + primary CTA */
+        --brand-hover: #e5604e;
+
+        --black: #000000;
+        --charcoal-900: #202020;
+        --charcoal-700: #343434;
+
+        --neutral-950: #0a0a0a;
+        --neutral-900: #171717;
+        --neutral-800: #262626;
+        --neutral-700: #404040;
+        --neutral-500: #737373;
+        --neutral-400: #a1a1a1;
+        --neutral-300: #d4d4d4;
+        --neutral-200: #e5e5e5;
+        --neutral-100: #f5f5f5;
+
+        --green-500: #00c758;
+        --blue-400: #54a2ff;
+        --orange-500: #fe6e00;
+
+        /* dark-mode semantic mapping (matches Notus dark tokens) */
+        --bg: var(--black);
+        --surface: var(--charcoal-900);
+        --surface-2: var(--neutral-900);
+        --line: var(--neutral-700);
+        --line-soft: var(--neutral-800);
+        --txt: var(--neutral-100);
+        --dim: var(--neutral-400);
+        --dots: var(--neutral-800);
+
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        --radius-2xl: 1rem;
+        --radius-3xl: 1.5rem;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--txt);
+        font-family: var(--font-primary);
+        font-size: 16px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        /* dotted background pattern, like Notus */
+        background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+        background-size: 22px 22px;
+        background-position: -11px -11px;
+      }
+
+      a { color: inherit; text-decoration: none; }
+
+      .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+      /* ===== top nav ===== */
+      nav {
+        position: sticky; top: 0; z-index: 20;
+        backdrop-filter: blur(10px);
+        background: color-mix(in srgb, var(--black) 72%, transparent);
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+      .brand-mark { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; font-size: 18px; }
+      .brand-logo { width: 24px; height: 24px; display: block; flex: none; }
+      .nav-links { display: flex; gap: 28px; font-size: 14px; color: var(--dim); }
+      .nav-links a:hover { color: var(--txt); }
+      @media (max-width: 720px) { .nav-links { display: none; } }
+
+      .btn {
+        font-family: var(--font-primary); font-size: 14px; font-weight: 600;
+        border: 0; border-radius: var(--radius-lg); padding: 10px 18px; cursor: pointer;
+        transition: background .15s, transform .05s, border-color .15s;
+      }
+      .btn-brand { background: var(--brand); color: #2a0d08; }
+      .btn-brand:hover { background: var(--brand-hover); }
+      .btn-ghost { background: transparent; color: var(--txt); border: 1px solid var(--line); }
+      .btn-ghost:hover { border-color: var(--neutral-500); }
+      .btn:active { transform: translateY(1px); }
+
+      /* ===== hero ===== */
+      .hero { text-align: center; padding: 96px 0 56px; }
+      .eyebrow {
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid var(--line-soft); background: var(--surface);
+        border-radius: 999px; padding: 6px 14px; font-size: 12.5px; color: var(--dim);
+        margin-bottom: 28px;
+      }
+      .eyebrow b { color: var(--txt); font-weight: 600; }
+      .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green-500) 25%, transparent); }
+      h1 {
+        font-size: clamp(40px, 6vw, 68px); line-height: 1.02; letter-spacing: -0.03em;
+        font-weight: 700; margin: 0 auto 20px; max-width: 16ch;
+      }
+      h1 .accent { color: var(--brand); }
+      .sub { color: var(--dim); font-size: 18px; max-width: 60ch; margin: 0 auto 32px; }
+      .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+      /* ===== console (the live product) ===== */
+      /* keep horizontal margins auto so .wrap centering isn't overridden */
+      .console { margin: 8px auto 64px; }
+      .card {
+        background: var(--surface); border: 1px solid var(--line-soft);
+        border-radius: var(--radius-2xl); padding: 20px;
+      }
+      .card + .card { margin-top: 18px; }
+
+      .caps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+      .cap { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--radius-xl); padding: 14px; }
+      .cap .name { font-weight: 600; font-size: 14px; }
+      .cap .risk { font-size: 11px; color: var(--brand); text-transform: uppercase; letter-spacing: .06em; margin-left: 6px; }
+      .cap .desc { color: var(--dim); font-size: 12.5px; margin-top: 6px; line-height: 1.45; }
+
+      .prompt-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      input[type="text"] {
+        flex: 1; min-width: 260px; background: var(--neutral-950);
+        border: 1px solid var(--line); color: var(--txt);
+        border-radius: var(--radius-lg); padding: 13px 16px; font-size: 15px; font-family: var(--font-primary);
+      }
+      input[type="text"]::placeholder { color: var(--neutral-500); }
+      input[type="text"]:focus { outline: none; border-color: var(--brand); }
+
+      .quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .chip-btn {
+        background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--dim);
+        border-radius: 999px; padding: 7px 13px; font-size: 12.5px; cursor: pointer; font-family: var(--font-primary);
+      }
+      .chip-btn:hover { color: var(--txt); border-color: var(--neutral-500); }
+
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
+      .stat { background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--radius-xl); padding: 16px 18px; min-width: 0; overflow: hidden; }
+      .stat .k { color: var(--dim); font-size: 12.5px; }
+      /* Value can't overflow the card: responsive size + wrap long numbers. */
+      .stat .v { font-size: clamp(18px, 4vw, 28px); font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; overflow-wrap: anywhere; line-height: 1.15; }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; vertical-align: top; }
+      th { color: var(--dim); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+      tr:last-child td { border-bottom: 0; }
+      .s-done { color: var(--green-500); font-weight: 600; }
+      .s-running { color: var(--blue-400); }
+      .s-queued { color: var(--dim); }
+      .s-failed { color: #ff6b6b; }
+      .s-awaiting-approval { color: var(--orange-500); }
+      .mono { font-family: var(--font-mono); font-size: 12.5px; }
+      .mono a { color: var(--blue-400); }
+      .mono a:hover { text-decoration: underline; }
+      .empty { color: var(--dim); padding: 22px 10px; text-align: center; }
+
+      .section-label { font-size: 12.5px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 14px; }
+
+      /* ===== settlement stepper (bring-your-own-wallet flow) ===== */
+      .flow { margin-top: 16px; padding: 18px 20px; background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: var(--radius-xl); }
+      .flow-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+      .flow-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+      .flow-note { font-size: 12px; color: var(--dim); }
+      .steps { display: flex; flex-direction: column; gap: 2px; }
+      .stp { display: flex; align-items: flex-start; gap: 12px; padding: 9px 0; }
+      .stp .ico {
+        flex: none; width: 22px; height: 22px; border-radius: 50%;
+        border: 1.5px solid var(--line); display: grid; place-items: center;
+        font-size: 11px; font-weight: 600; color: var(--dim); margin-top: 1px;
+        transition: all .2s;
+      }
+      .stp .body { flex: 1; min-width: 0; }
+      .stp .label { font-size: 13.5px; font-weight: 500; color: var(--dim); transition: color .2s; }
+      .stp .meta { font-size: 12px; color: var(--neutral-500); margin-top: 3px; line-height: 1.4; }
+      .stp .meta a { color: var(--blue-400); }
+      .stp .meta a:hover { text-decoration: underline; }
+
+      /* states */
+      .stp.done .ico { border-color: var(--green-500); background: var(--green-500); color: #04210f; }
+      .stp.done .label { color: var(--txt); }
+      .stp.active .ico { border-color: var(--brand); color: var(--brand); }
+      .stp.active .label { color: var(--txt); }
+      .stp.failed .ico { border-color: #ff6b6b; color: #ff6b6b; }
+      .stp.failed .label { color: #ff8a8a; }
+      /* connector line between steps */
+      .stp { position: relative; }
+      .stp:not(:last-child) .ico::after {
+        content: ''; position: absolute; left: 10.25px; top: 23px; width: 1.5px; height: calc(100% - 22px);
+        background: var(--line-soft);
+      }
+      .stp.done:not(:last-child) .ico::after { background: var(--green-500); }
+      /* spinner on the active step */
+      .stp.active .ico { position: relative; }
+      .spin { width: 12px; height: 12px; border: 1.5px solid color-mix(in srgb, var(--brand) 30%, transparent); border-top-color: var(--brand); border-radius: 50%; animation: sp .7s linear infinite; }
+      @keyframes sp { to { transform: rotate(360deg); } }
+      .foot { color: var(--dim); font-size: 13px; text-align: center; padding: 8px 0 60px; }
+      .foot b { color: var(--txt); font-weight: 600; }
+
+      /* table scrolls horizontally instead of breaking the card on narrow screens */
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .table-scroll table { min-width: 640px; }
+
+      /* ===== mobile ===== */
+      @media (max-width: 640px) {
+        .wrap { padding: 0 16px; }
+        .hero { padding: 40px 0 28px !important; }
+        .sub { font-size: 15.5px; }
+        .card { padding: 16px; border-radius: var(--radius-xl); }
+        .prompt-row { flex-direction: column; align-items: stretch; }
+        input[type="text"] { min-width: 0; width: 100%; }
+        .prompt-row .btn { width: 100%; }
+        .caps { grid-template-columns: 1fr; }
+        .stat .v { font-size: 24px; }
+        #nav-cta { padding: 8px 13px; font-size: 13px; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap nav-inner">
+        <a class="brand-mark" href="/">
+          <svg class="brand-logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <defs><linearGradient id="atlasGa" x1="4" y1="28" x2="28" y2="6" gradientUnits="userSpaceOnUse"><stop stop-color="#e5604e"/><stop offset="1" stop-color="#f6a08f"/></linearGradient></defs>
+            <path d="M16 3 L28 28 L22.2 28 L16 12.6 L9.8 28 L4 28 Z" fill="url(#atlasGa)"/>
+            <path d="M9.4 22.2 Q16 19.4 22.6 22.2" stroke="#0a0a0a" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".35"/>
+            <ellipse cx="16" cy="17.5" rx="10.5" ry="4.3" transform="rotate(-24 16 17.5)" stroke="url(#atlasGa)" stroke-width="1.5" fill="none" opacity=".8"/>
+            <circle cx="24.7" cy="11.6" r="1.7" fill="#f17463"/>
+            <circle cx="16" cy="16.4" r="2.5" fill="#f17463"/>
+          </svg>
+          Atlas
+        </a>
+        <div class="nav-links">
+          <a href="/">← Home</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="/.well-known/asp.yaml">Manifest</a>
+        </div>
+        <button class="btn btn-ghost" id="connect">Connect wallet</button>
+      </div>
+    </nav>
+
+    <header class="hero wrap" style="padding: 56px 0 40px">
+      <div class="eyebrow"><span class="status-dot"></span> <b id="mode">OKX.AI ASP</b> · live on X Layer</div>
+      <h1 style="font-size: clamp(30px, 4vw, 44px)">Operations <span class="accent">console</span></h1>
+      <p class="sub" style="margin-bottom: 0">
+        Submit an intent in plain English. Atlas plans it, escrows it, proves it, and settles it on-chain.
+      </p>
+    </header>
+
+    <main class="wrap console" id="console">
+      <section class="card" id="capabilities">
+        <p class="section-label">Capabilities</p>
+        <div class="caps" id="caps"><span class="cap desc">loading capabilities…</span></div>
+      </section>
+
+      <section class="card">
+        <p class="section-label">Submit an intent</p>
+        <div id="wallet-banner" style="font-size:13px;color:var(--dim);margin-bottom:12px">
+          <span id="wallet-state">Not connected — intents settle from the <b>agent's</b> wallet (demo mode).</span>
+          <span id="wallet-addr" class="mono" style="color:var(--green-500)"></span>
+        </div>
+        <div class="prompt-row">
+          <input id="intent" type="text" placeholder="e.g. Pay 0x7099… 200 USDC for the logo" />
+          <button class="btn btn-brand" id="run">Run intent ▸</button>
+        </div>
+        <div id="signflow" class="flow" style="display:none"></div>
+
+        <!-- Split recipient form: shown when a connected user submits a split intent. -->
+        <div id="split-form" class="flow" style="display:none">
+          <div class="flow-head">
+            <span class="flow-title">Split — enter recipients</span>
+            <span class="flow-note">each is funded from your wallet</span>
+          </div>
+          <label style="font-size:12.5px;color:var(--dim);display:block;margin-bottom:6px">Total (USDC)</label>
+          <input id="split-total" type="text" inputmode="decimal" placeholder="6"
+                 style="width:100%;margin-bottom:14px;background:var(--neutral-950);border:1px solid var(--line);color:var(--txt);border-radius:var(--radius-lg);padding:11px 14px;font-size:14px;font-family:var(--font-primary)" />
+          <label style="font-size:12.5px;color:var(--dim);display:block;margin-bottom:6px">Recipient addresses</label>
+          <div id="split-rows"></div>
+          <button id="split-add" class="chip-btn" style="margin-top:6px">+ Add recipient</button>
+          <div id="split-msg" style="font-size:12.5px;color:#ff8a8a;margin-top:10px"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button id="split-go" class="btn btn-brand">Split & sign ▸</button>
+            <button id="split-cancel" class="btn btn-ghost">Cancel</button>
+          </div>
+        </div>
+
+        <div class="quick">
+          <button class="chip-btn" data-i="Pay 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 200 USDC for the logo">Pay 200</button>
+          <button class="chip-btn" data-i="Verify deliverable, release 150 USDC to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Verify (receipt) 150</button>
+          <button class="chip-btn" data-i="Verify attestation release 150 USDC to 0x70997970C51812dc3A010C7d01b50e0d17dc79C8">Verify (attest) 150</button>
+          <button class="chip-btn" data-i="Invoice 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 500 USDC for consulting">Invoice 500</button>
+        </div>
+      </section>
+
+      <section class="stats">
+        <div class="stat"><div class="k">Live tasks</div><div class="v" id="count">0</div></div>
+        <div class="stat"><div class="k">Completed</div><div class="v" id="done">0</div></div>
+        <div class="stat"><div class="k">Provable revenue (fee)</div><div class="v" id="fees">0</div></div>
+      </section>
+
+      <section class="card">
+        <p class="section-label">Live ledger</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Task</th><th>Capability</th><th>Status</th><th>Summary</th><th>Tx</th><th>Fee</th></tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="6" class="empty">No tasks yet. Submit an intent above.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="foot">
+        Every value-moving action is <b>non-custodial</b> (escrow) and proofs are <b>on-chain</b>.
+        Fees accrue on X Layer, so revenue is auditable.
+      </p>
+    </main>
+
+    <script type="module">
+      import {
+        createWalletClient, createPublicClient, custom, http, getContract,
+      } from 'https://esm.sh/viem@2.55.2';
+
+      const rows = {};
+      const fmt = (n) => (typeof n === 'bigint' ? n.toString() : String(n ?? ''));
+      // Format USDC base units (6dp) as a human amount, e.g. 25000n -> "0.025".
+      const usdc = (base) => {
+        const n = typeof base === 'bigint' ? base : BigInt(base || 0);
+        const whole = n / 1000000n;
+        const frac = (n % 1000000n).toString().padStart(6, '0').replace(/0+$/, '');
+        return frac ? `${whole}.${frac}` : `${whole}`;
+      };
+      const short = (h) => (h && h.length > 14 ? h.slice(0, 10) + '…' + h.slice(-6) : h || '-');
+
+      async function loadManifest() {
+        const m = await (await fetch('/manifest')).json();
+        document.getElementById('mode').textContent = 'OKX.AI ASP · ' + m.agent.category;
+        document.getElementById('caps').innerHTML = m.agent.services
+          .map(
+            (c) =>
+              `<div class="cap"><div class="name">${c.name}<span class="risk">${c.risk}</span></div><div class="desc">${c.description}</div></div>`,
+          )
+          .join('');
+      }
+
+      function render(t) {
+        rows[t.id] = t;
+        const sorted = Object.values(rows).sort((a, b) => a.id.localeCompare(b.id));
+        const body = document.getElementById('rows');
+        if (!sorted.length) {
+          body.innerHTML = '<tr><td colspan="6" class="empty">No tasks yet. Submit an intent above.</td></tr>';
+        } else {
+          body.innerHTML = sorted
+            .map((t) => {
+              const tx = t.result?.txHash
+                ? `<a href="${t.explorer}${t.result.txHash}" target="_blank" class="mono">${short(t.result.txHash)}</a>`
+                : '-';
+              return `<tr>
+                <td class="mono">${t.id}</td>
+                <td><b>${t.capability}</b></td>
+                <td class="s-${t.status}">${t.status}</td>
+                <td>${t.result?.summary ?? t.intent}</td>
+                <td>${tx}</td>
+                <td class="mono">${usdc(t.feesAccrued)}</td>
+              </tr>`;
+            })
+            .join('');
+        }
+        const all = Object.values(rows);
+        document.getElementById('count').textContent = all.length;
+        document.getElementById('done').textContent = all.filter((t) => t.status === 'done').length;
+        const totalFee = all.reduce((s, t) => s + BigInt(t.feesAccrued || 0), 0n);
+        document.getElementById('fees').textContent = usdc(totalFee) + ' USDC';
+      }
+
+      // Owner-scoped live ledger: the stream only carries THIS viewer's tasks.
+      // Before connecting a wallet, the feed is the 'server' scope (empty for
+      // visitors). Connecting a wallet reconnects the stream to that address and
+      // clears any previously shown rows so you never see another owner's tasks.
+      let es = null;
+      function openLedger(owner) {
+        if (es) es.close();
+        for (const k of Object.keys(rows)) delete rows[k]; // clear stale/other-owner rows
+        render.__cleared = true;
+        document.getElementById('rows').innerHTML =
+          '<tr><td colspan="6" class="empty">No tasks yet. Submit an intent above.</td></tr>';
+        document.getElementById('count').textContent = '0';
+        document.getElementById('done').textContent = '0';
+        document.getElementById('fees').textContent = '0 USDC';
+        es = new EventSource('/events' + (owner ? `?owner=${owner}` : ''));
+        es.onmessage = (e) => render(JSON.parse(e.data));
+        es.onerror = () => {};
+      }
+      openLedger(null); // start in server scope (nothing user-specific shown)
+
+      // ---- agent-funded path (demo mode, no wallet) ----
+      function submit(intent) {
+        fetch('/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ intent, owner: account || undefined }),
+        });
+      }
+
+      // ---- bring-your-own-wallet (non-custodial) path ----
+      let wallet = null;   // viem wallet client over window.ethereum
+      let account = null;  // connected address
+      let cfg = null;      // /wallet/config (chain, token, escrow abi, ...)
+
+      const flow = document.getElementById('signflow');
+
+      // Ordered settlement steps. Each render sets one step 'active' and the
+      // prior ones 'done'; `meta` carries a short detail (tx link, etc.).
+      const STEPS = [
+        { key: 'plan', label: 'Plan & deploy escrow' },
+        { key: 'approve', label: 'Approve — sign in your wallet' },
+        { key: 'lock', label: 'Lock funds — sign in your wallet' },
+        { key: 'settle', label: 'Agent verifies & settles' },
+      ];
+
+      // Core stepper renderer for an arbitrary ordered step list.
+      function renderFlowCustom(steps, { active, meta = {}, done = false, failedKey = null, title = 'Settling from your wallet' }) {
+        flow.style.display = 'block';
+        const rows = steps.map((s, i) => {
+          let cls = 'stp';
+          let ico = String(i + 1);
+          if (failedKey === s.key) { cls += ' failed'; ico = '!'; }
+          else if (done || i < active) { cls += ' done'; ico = '<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.2l2.3 2.3L9.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'; }
+          else if (i === active) { cls += ' active'; ico = '<span class="spin"></span>'; }
+          const detail = meta[s.key] ? `<div class="meta">${meta[s.key]}</div>` : '';
+          return `<div class="${cls}"><div class="ico">${ico}</div><div class="body"><div class="label">${s.label}</div>${detail}</div></div>`;
+        }).join('');
+        flow.innerHTML = `
+          <div class="flow-head">
+            <span class="flow-title">${title}</span>
+            <span class="flow-note">non-custodial · X Layer</span>
+          </div>
+          <div class="steps">${rows}</div>`;
+      }
+
+      // The standard single-payment stepper.
+      function renderFlow(opts) { renderFlowCustom(STEPS, opts); }
+
+      function flowError(msg, failedKey) {
+        renderFlow({ active: STEPS.findIndex((s) => s.key === failedKey), failedKey, title: 'Settlement stopped' });
+        const m = document.createElement('div');
+        m.style.cssText = 'margin-top:14px;font-size:12.5px;color:#ff8a8a';
+        m.textContent = msg;
+        flow.appendChild(m);
+      }
+
+      async function loadCfg() {
+        if (!cfg) cfg = await (await fetch('/wallet/config')).json();
+        return cfg;
+      }
+
+      // POST JSON and return the parsed body, throwing the server's error message
+      // on a non-2xx response.
+      async function postJson(url, body) {
+        const r = await fetch(url, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || `${url} failed (${r.status})`);
+        return j;
+      }
+
+      function chainObj(c) {
+        return {
+          id: c.chainId, name: 'X Layer',
+          nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+          rpcUrls: { default: { http: [c.rpc] } },
+        };
+      }
+
+      async function connect() {
+        if (!window.ethereum) {
+          alert('No wallet found. Install MetaMask or the OKX Wallet extension to spend your own funds.');
+          return;
+        }
+        const c = await loadCfg();
+        const chain = chainObj(c);
+        // Ensure the wallet is on X Layer testnet (add the chain if unknown).
+        try {
+          await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + c.chainId.toString(16) }] });
+        } catch (e) {
+          if (e.code === 4902) {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{ chainId: '0x' + c.chainId.toString(16), chainName: 'X Layer testnet', nativeCurrency: chain.nativeCurrency, rpcUrls: [c.rpc], blockExplorerUrls: ['https://www.okx.com/web3/explorer/xlayer-test'] }],
+            });
+          }
+        }
+        const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        account = addr;
+        wallet = createWalletClient({ chain, transport: custom(window.ethereum), account: addr });
+        setConnectedUI(addr);
+        openLedger(addr); // scope the live ledger to this wallet's tasks
+      }
+
+      // Reflect connected state in the header + button (button becomes a disconnect toggle).
+      function setConnectedUI(addr) {
+        document.getElementById('wallet-state').innerHTML = 'Connected — intents settle from <b>your</b> wallet, non-custodially:';
+        document.getElementById('wallet-addr').textContent = ' ' + short(addr);
+        const btn = document.getElementById('connect');
+        btn.textContent = short(addr) + '  ·  Disconnect';
+        btn.title = 'Click to disconnect ' + addr;
+      }
+
+      // Disconnect: drop the wallet, revert the header, and re-scope the ledger to
+      // the (empty) server view. Note: this clears the app's session only — wallet
+      // extensions like MetaMask have no programmatic "log out", so the site simply
+      // forgets you; you stay "connected" in MetaMask until you disconnect there.
+      function disconnect() {
+        account = null;
+        wallet = null;
+        document.getElementById('wallet-state').innerHTML =
+          "Not connected — intents settle from the <b>agent's</b> wallet (demo mode).";
+        document.getElementById('wallet-addr').textContent = '';
+        const btn = document.getElementById('connect');
+        btn.textContent = 'Connect wallet';
+        btn.title = '';
+        flow.style.display = 'none'; // hide any lingering signing panel
+        openLedger(null); // back to server scope; clears your rows from view
+      }
+
+      // Full non-custodial run: prepare (server deploys escrow, funder=you) ->
+      // you sign approve + lock -> server releases after proof.
+      async function runViaWallet(intent) {
+        const c = await loadCfg();
+        const chain = chainObj(c);
+        const pub = createPublicClient({ chain, transport: http(c.rpc) });
+
+        const exp = 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+        const txLink = (h) => `<a class="mono" target="_blank" href="${exp}${h}">${short(h)}</a>`;
+
+        // Step 1 — plan + deploy escrow (server).
+        renderFlow({ active: 0 });
+        const prep = await postJson('/wallet/prepare', { intent, from: account });
+        const amount = BigInt(prep.amount);
+        const human = (Number(amount) / 1e6).toLocaleString(undefined, { maximumFractionDigits: 6 });
+        const meta = { plan: `Escrow ${short(prep.escrow)} · paying ${human} USDC to ${short(prep.payee)}` };
+
+        // Step 2 — approve (user signs).
+        renderFlow({ active: 1, meta });
+        const approveHash = await wallet.writeContract({
+          address: c.token, abi: c.erc20Abi, functionName: 'approve', args: [prep.escrow, amount], account, chain,
+        });
+        meta.approve = txLink(approveHash);
+        await pub.waitForTransactionReceipt({ hash: approveHash });
+
+        // Step 3 — lock (user signs).
+        renderFlow({ active: 2, meta });
+        const lockHash = await wallet.writeContract({
+          address: prep.escrow, abi: c.escrowAbi, functionName: 'lock', args: [], account, chain,
+        });
+        meta.lock = txLink(lockHash);
+        await pub.waitForTransactionReceipt({ hash: lockHash });
+
+        // Step 4 — release (agent, server-side, after proof).
+        renderFlow({ active: 3, meta });
+        const rel = await postJson('/wallet/release', {
+          taskId: prep.taskId, escrow: prep.escrow, amount: prep.amount, payee: prep.payee,
+        });
+        meta.settle = `Settled ${human} USDC · ${txLink(rel.txHash)}`;
+        renderFlow({ active: STEPS.length, meta, done: true, title: 'Settled from your wallet' });
+      }
+      // ---- Split: recipient form + multi-escrow signing loop ----
+      const splitForm = document.getElementById('split-form');
+      const splitRows = document.getElementById('split-rows');
+      const addrInput = (val = '') =>
+        `<div style="display:flex;gap:8px;margin-bottom:8px"><input type="text" value="${val}" placeholder="0x…" class="split-addr" style="flex:1;background:var(--neutral-950);border:1px solid var(--line);color:var(--txt);border-radius:var(--radius-lg);padding:10px 12px;font-size:13px;font-family:var(--font-mono)"/><button class="chip-btn split-del" title="remove">✕</button></div>`;
+      function renderSplitRows(n = 2) {
+        splitRows.innerHTML = Array.from({ length: n }, () => addrInput()).join('');
+        splitRows.querySelectorAll('.split-del').forEach((b) => (b.onclick = () => {
+          if (splitRows.children.length > 2) b.closest('div').remove();
+        }));
+      }
+      function openSplitForm(total) {
+        flow.style.display = 'none';
+        document.getElementById('split-total').value = total || '';
+        document.getElementById('split-msg').textContent = '';
+        renderSplitRows(2);
+        splitForm.style.display = 'block';
+      }
+      document.getElementById('split-add').onclick = () => {
+        splitRows.insertAdjacentHTML('beforeend', addrInput());
+        splitRows.querySelectorAll('.split-del').forEach((b) => (b.onclick = () => {
+          if (splitRows.children.length > 2) b.closest('div').remove();
+        }));
+      };
+      document.getElementById('split-cancel').onclick = () => { splitForm.style.display = 'none'; };
+      document.getElementById('split-go').onclick = () => runSplit().catch((e) => {
+        document.getElementById('split-msg').textContent = e.message || String(e);
+      });
+
+      // Deploy N escrows, then for each: user approves + locks, agent releases.
+      async function runSplit() {
+        const total = document.getElementById('split-total').value.trim();
+        const recipients = [...splitRows.querySelectorAll('.split-addr')].map((i) => i.value.trim()).filter(Boolean);
+        const msg = document.getElementById('split-msg');
+        msg.textContent = '';
+        if (!/^\d+(\.\d+)?$/.test(total)) { msg.textContent = 'Enter a valid total.'; return; }
+        if (recipients.length < 2) { msg.textContent = 'Add at least 2 recipients.'; return; }
+        const badAddr = recipients.find((r) => !/^0x[a-fA-F0-9]{40}$/.test(r));
+        if (badAddr) { msg.textContent = `Not a valid address: ${badAddr}`; return; }
+
+        splitForm.style.display = 'none';
+        const c = await loadCfg();
+        const chain = chainObj(c);
+        const pub = createPublicClient({ chain, transport: http(c.rpc) });
+        const exp = 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+
+        // Build a stepper: one line per recipient, plus a deploy line.
+        const legSteps = recipients.map((r, i) => ({ key: 'leg' + i, label: `Recipient ${i + 1} — ${short(r)}` }));
+        const renderSplit = (active, meta = {}, done = false, failedKey = null) =>
+          renderFlowCustom([{ key: 'deploy', label: 'Deploy escrows' }, ...legSteps], { active, meta, done, failedKey, title: `Split across ${recipients.length}` });
+
+        renderSplit(0);
+        const prep = await postJson('/wallet/prepare-split', { from: account, recipients, total });
+        const meta = { deploy: `${prep.legs.length} escrows deployed` };
+
+        for (let i = 0; i < prep.legs.length; i++) {
+          const leg = prep.legs[i];
+          const amt = BigInt(leg.amount);
+          renderSplit(i + 1, meta);
+          // approve
+          const ah = await wallet.writeContract({ address: c.token, abi: c.erc20Abi, functionName: 'approve', args: [leg.escrow, amt], account, chain });
+          await pub.waitForTransactionReceipt({ hash: ah });
+          // lock
+          const lh = await wallet.writeContract({ address: leg.escrow, abi: c.escrowAbi, functionName: 'lock', args: [], account, chain });
+          await pub.waitForTransactionReceipt({ hash: lh });
+          // release (agent)
+          const rel = await postJson('/wallet/release-split', { taskId: prep.taskId, escrow: leg.escrow, amount: leg.amount, payee: leg.payee, legIndex: i, legCount: prep.legs.length });
+          meta['leg' + i] = `${(Number(amt) / 1e6)} USDC · <a class="mono" target="_blank" href="${exp}${rel.txHash}">${short(rel.txHash)}</a>`;
+        }
+        renderSplit(legSteps.length + 1, meta, true);
+      }
+
+      // Route a submission through the wallet flow when connected, else demo path.
+      async function handleIntent(intent) {
+        if (!intent) return;
+        // A split intent (connected) opens the recipient form instead of the single-escrow flow.
+        if (account && wallet && /\bsplit\b/i.test(intent)) {
+          const m = intent.match(/(\d+(?:\.\d+)?)/);
+          openSplitForm(m ? m[1] : '');
+          return;
+        }
+        if (account && wallet) {
+          try {
+            await runViaWallet(intent);
+          } catch (e) {
+            // Map common failure points to the step that failed for a clear stepper state.
+            const msg = e.shortMessage || e.message || String(e);
+            let key = 'settle';
+            if (/prepare|recipient|amount|deploy/i.test(msg)) key = 'plan';
+            else if (/approve/i.test(msg)) key = 'approve';
+            else if (/lock|not funded/i.test(msg)) key = 'lock';
+            else if (/User rejected|denied/i.test(msg)) key = 'approve';
+            flowError(msg, key);
+          }
+        } else {
+          submit(intent); // agent-funded demo path
+        }
+      }
+
+      document.getElementById('run').onclick = () => {
+        const el = document.getElementById('intent');
+        const v = el.value.trim();
+        if (v) { handleIntent(v); el.value = ''; }
+      };
+      document.getElementById('intent').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('run').click();
+      });
+      document.getElementById('connect').onclick = () => {
+        if (account) disconnect();
+        else connect().catch((e) => alert(e.message || e));
+      };
+      document.querySelectorAll('button[data-i]').forEach((b) => (b.onclick = () => handleIntent(b.getAttribute('data-i'))));
+
+      loadManifest();
+    </script>
+  </body>
+</html>

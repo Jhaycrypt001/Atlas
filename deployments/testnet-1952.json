@@ -1,0 +1,23 @@
+{
+  "network": "X Layer testnet",
+  "chainId": 1952,
+  "rpc": "https://testrpc.xlayer.tech",
+  "deployedAt": "2026-07-17",
+  "agent": "0x203BDFC8174f94A16F118b0Eb5090d076e3c8701",
+  "treasury(test)": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "contracts": {
+    "Escrow": {
+      "address": "0x8fc9bbf54f1c45145bb75d1bb711ae551efde32e",
+      "deployTx": "0x8af39cb02f4e8b50c6f65c60e70a6cbd156d70e69b4eff3573c8fc2b7beb034b",
+      "lockTx": "0x8e063804de65ce722ca6a72c9f3545e73828403806dec432dc1439adc4b8eedc",
+      "releaseTx": "0x7a80fb3364a47eb054ce3d721eb047a4fdc3b26e6d804fa736ced66e44f3bc53",
+      "refundTx": "0x1ce9e6d8dfd0eb468fe68385aceef5f96508ea7104671de18b9f0d1265833dae",
+      "verified": "non-custodial lock -> release pays payee amount-fee, treasury fee (0.5%); refund recovers"
+    },
+    "TestUSDC": {
+      "address": "0x732cec1df06a48c596408ab1d95ee109a3179364",
+      "deployTx": "0x05f18de07b3717199ec753a4b3ed42a301c4b5717b43ee80e861af2c35cd5ea4"
+    }
+  },
+  "note": "TestUSDC is the demo stablecoin deployed on X Layer testnet (source: contracts/TestUSDC.sol). Set XLAYER_USDC to its address. Mainnet swaps in the canonical stablecoin address with zero code changes. Verify every tx on the X Layer testnet block explorer."
+}
