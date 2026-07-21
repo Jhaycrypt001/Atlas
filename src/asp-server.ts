@@ -204,7 +204,12 @@ const server = http.createServer(async (req, res) => {
     let paymentResp: string | undefined;
     if (PAID) {
       const paySig = (req.headers['payment-signature'] || req.headers['payment-sig']) as string | undefined;
-      const resource = `${req.headers.host ? 'http://' + req.headers.host : ''}/asp/run`;
+      // Build the canonical resource URL. Prefer ASP_BASE_URL (set to the public
+      // https:// origin); otherwise honor the proxy's forwarded scheme so we never
+      // advertise http:// when served behind HTTPS (Render/any TLS proxy).
+      const proto = (req.headers['x-forwarded-proto'] as string)?.split(',')[0] || 'http';
+      const origin = (process.env.ASP_BASE_URL || `${proto}://${req.headers.host || ''}`).replace(/\/+$/, '');
+      const resource = `${origin}/asp/run`;
       if (!paySig) {
         return json(res, 402, challenge(resource, { token: TOKEN, amount: PRICE, recipient: TREASURY }), {
           'x-payment-required': '1',
