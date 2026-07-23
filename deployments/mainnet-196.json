@@ -1,0 +1,18 @@
+{
+  "network": "X Layer Mainnet",
+  "chainId": 196,
+  "rpc": "https://rpc.xlayer.tech",
+  "deployedAt": "2026-07-23",
+  "agent": "0x203BDFC8174f94A16F118b0Eb5090d076e3c8701",
+  "treasury": "0x203BDFC8174f94A16F118b0Eb5090d076e3c8701",
+  "usdc": "0x74b7F16337b8972027F6196A17a631aC6dE26d22",
+  "contracts": {
+    "Attestation": {
+      "address": "0x93a84f111d9f82b4bbbde830f5f91a254d3c547f",
+      "deployTx": "0x8b000ed027b09d882a741ed4e0918f6ad06eb545f80e755af53d0c10678e6112",
+      "block": 66039551,
+      "gasUsed": "213776"
+    }
+  },
+  "note": "Escrow is deployed per-settlement at runtime (constructor binds funder/payee/amount), so it has no singleton address. USDC is canonical X Layer USDC, not deployed by us."
+}

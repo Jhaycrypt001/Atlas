@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { buildAgent } from './index';
-import { challenge, verifyPayment, paymentResponseHeader } from './kernel/x402';
+import { challenge, verifyPayment, paymentResponseHeader, paymentErrorHeader } from './kernel/x402';
 import { normalizeAmount, formatUsdc, usdcToBase } from './kernel/planner';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -203,7 +203,11 @@ const server = http.createServer(async (req, res) => {
 
     let paymentResp: string | undefined;
     if (PAID) {
-      const paySig = (req.headers['payment-signature'] || req.headers['payment-sig']) as string | undefined;
+      // Spec header is `X-PAYMENT` (base64 JSON). The legacy PAYMENT-SIGNATURE
+      // names stay accepted so any already-integrated client keeps working.
+      const paySig = (req.headers['x-payment'] ||
+        req.headers['payment-signature'] ||
+        req.headers['payment-sig']) as string | undefined;
       // Build the canonical resource URL. Prefer ASP_BASE_URL (set to the public
       // https:// origin); otherwise honor the proxy's forwarded scheme so we never
       // advertise http:// when served behind HTTPS (Render/any TLS proxy).
@@ -224,12 +228,19 @@ const server = http.createServer(async (req, res) => {
         });
         paymentResp = paymentResponseHeader({ payer, amount: PRICE, token: 'USDC' });
       } catch (e: any) {
-        return json(res, 402, { error: String(e?.message ?? e) });
+        // Per the HTTP transport spec, a failed payment re-serves the full
+        // requirements body (x402Version + error + accepts[]) and reports the
+        // reason in a base64 X-PAYMENT-RESPONSE header.
+        const reason = String(e?.message ?? e);
+        const body = challenge(resource, { token: TOKEN, amount: PRICE, recipient: TREASURY });
+        return json(res, 402, { ...body, error: `Payment failed: ${reason}` }, {
+          'X-PAYMENT-RESPONSE': paymentErrorHeader(reason),
+        });
       }
     }
 
     const task = await runIntent(intent);
-    const headers = paymentResp ? { 'PAYMENT-RESPONSE': paymentResp } : {};
+    const headers = paymentResp ? { 'X-PAYMENT-RESPONSE': paymentResp } : {};
     return json(
       res,
       200,

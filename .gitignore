@@ -1,5 +1,9 @@
 node_modules/
+# Every .env variant holds live keys. `.env` alone did NOT cover backups like
+# .env.testnet.bak, which a `git add -A` would have committed.
 .env
+.env.*
+!.env.example
 dist/
 *.log
 .keys/

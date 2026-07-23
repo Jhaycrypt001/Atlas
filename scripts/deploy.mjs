@@ -1,6 +1,12 @@
 // Deploy + EXERCISE the real Escrow on a live EVM.
 //   node scripts/deploy.mjs localhost        # against `npx hardhat node`
 //   node scripts/deploy.mjs xlayerTestnet     # reads .env (PK, XLAYER_RPC, ...)
+//
+// ⚠ TESTNET / LOCAL ONLY — NEVER point this at X Layer mainnet (196).
+// It deploys a counterfeit TestUSDC and mints to itself, and it hardcodes
+// Hardhat test account #1 as treasury (line ~42) whose private key is public,
+// so every fee sent there is stealable. For mainnet use scripts/deploy-mainnet.mjs,
+// which deploys only Attestation and refuses known test accounts.
 import 'dotenv/config';
 import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -23,6 +29,18 @@ const which = process.argv[2] || 'localhost';
 const net = NETWORKS[which];
 if (!net) throw new Error(`unknown network ${which}`);
 if (which === 'xlayerTestnet' && !net.key) throw new Error('set PK env for xlayerTestnet');
+
+// Hard stop: this script deploys a fake USDC and pays fees to a public test key.
+// Running it against mainnet would deploy a counterfeit token under your address
+// and leak every fee. Use scripts/deploy-mainnet.mjs there.
+if (net.chainId === 196) {
+  console.error(
+    '\nRefusing to run: this is the TESTNET exercise script (deploys counterfeit TestUSDC,\n' +
+      'mints to itself, and uses a publicly-known Hardhat key as treasury).\n' +
+      'For X Layer mainnet use:  node scripts/deploy-mainnet.mjs\n',
+  );
+  process.exit(1);
+}
 
 const chain = {
   id: net.chainId,

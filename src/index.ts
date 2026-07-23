@@ -42,6 +42,8 @@ function assertTlsSecure(): void {
  * dangerous with real funds.
  */
 const TESTNET_USDC = '0x732cec1df06a48c596408ab1d95ee109a3179364';
+/** Canonical USDC on X Layer mainnet (okx/xlayer-tokenlist; EIP-3009 capable). */
+const MAINNET_USDC = '0x74b7f16337b8972027f6196a17a631ac6de26d22';
 function assertMainnetSafe(): void {
   if (Number(process.env.XLAYER_CHAIN_ID || 1952) !== 196) return; // testnet — skip
   const usdc = (process.env.XLAYER_USDC || '').toLowerCase();
@@ -53,6 +55,21 @@ function assertMainnetSafe(): void {
   }
   if (process.env.DEMO_MODE === '1' || process.env.DEMO_MODE === 'true') {
     throw new Error('DEMO_MODE (agent-funded, unauthenticated /intent) must be off on mainnet.');
+  }
+  // The x402 EIP-3009 domain is the TOKEN's own EIP-712 domain. If name/version
+  // don't match the deployed contract the domain separator differs and EVERY
+  // payment signature silently fails to verify — fail loudly at boot instead.
+  // Canonical USDC on X Layer mainnet reports name="USD Coin", version="2".
+  if (usdc === MAINNET_USDC) {
+    const name = process.env.XLAYER_USDC_NAME || 'USD Coin';
+    const version = process.env.XLAYER_USDC_VERSION || '2';
+    if (name !== 'USD Coin' || version !== '2') {
+      throw new Error(
+        `x402 token EIP-712 domain mismatch: canonical USDC on X Layer mainnet is ` +
+          `name="USD Coin" version="2", but config says name="${name}" version="${version}". ` +
+          `Every payment signature would be rejected. Fix XLAYER_USDC_NAME / XLAYER_USDC_VERSION.`,
+      );
+    }
   }
 }
 
