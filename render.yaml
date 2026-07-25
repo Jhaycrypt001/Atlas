@@ -22,18 +22,13 @@ services:
     # Build installs ONLY the global npm packages. The persistent disk ($HOME) is
     # NOT mounted at build time, so anything touching the disk lives in startCommand.
     buildCommand: bash deploy/build.sh
-    # CRITICAL: `okx-a2a run` must always execute and stay in the foreground — it is
-    # what keeps the worker alive and the agent online. Earlier the chain used `&&`,
-    # so when `doctor` exited non-zero (it reports a non-blocking issue) `run` never
-    # ran and the worker restart-looped. Use `;` so restore/config/doctor are
-    # best-effort and `run` ALWAYS starts.
-    startCommand: >-
-      bash deploy/restore-identity.sh;
-      bash deploy/install-onchainos.sh;
-      export PATH="$HOME/.local/bin:$PATH";
-      okx-a2a config provider --provider claude;
-      okx-a2a doctor --fix --non-interactive || true;
-      exec okx-a2a run
+    # Online status comes from the BACKGROUND daemon's XMTP listener (evidence: the
+    # only boot where OKX saw us online was the one where `daemon start` reported
+    # `pid=..., ready`). So we: restore identity, install onchainos (best-effort),
+    # bind the provider, explicitly start the daemon, then run a foreground keepalive
+    # loop that re-starts the daemon if it ever dies. `okx-a2a logs server` tails the
+    # listener log in the foreground so the container stays alive AND we get logs.
+    startCommand: bash deploy/run-daemon.sh
     disk:
       name: okx-agent-state
       mountPath: /var/okx-home   # HOME points here so ~/.okx-agent-task persists
