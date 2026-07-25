@@ -8,3 +8,17 @@ dist/
 *.log
 .keys/
 scratch/
+
+# OKX A2A identity material. The ENCRYPTED bundle (deploy/okx-identity.tgz.enc)
+# is intentionally committed; the plaintext identity must NEVER be. Block every
+# plaintext form so `git add -A` can't leak XMTP private keys.
+*.tgz
+*.tar
+*.tar.gz
+*.db3
+*.db3-shm
+*.db3-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+!deploy/okx-identity.tgz.enc

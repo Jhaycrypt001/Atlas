@@ -1,0 +1,40 @@
+# Render Blueprint for Atlas (#6991)
+#
+# atlas-a2a-daemon — the ALWAYS-ON okx-a2a XMTP daemon that OKX pings for the
+# online check. This is the service that keeps agent #6991 listed.
+#
+# Key design decisions (learned the hard way):
+#  - The daemon's AI provider is the Claude Code CLI. It authenticates HEADLESSLY
+#    when ANTHROPIC_API_KEY is present in the environment (no interactive login).
+#    So the build installs BOTH @okxweb3/a2a-node and @anthropic-ai/claude-code.
+#  - Render's filesystem is EPHEMERAL. The daemon's XMTP + sqlite identity lives
+#    in ~/.okx-agent-task. We mount a PERSISTENT DISK and point HOME at it so a
+#    redeploy/restart does NOT mint a new agent identity (which would fail OKX's
+#    online check for #6991).
+
+services:
+  - type: worker
+    name: atlas-a2a-daemon
+    runtime: node
+    plan: starter            # background workers require a paid plan (no free worker tier)
+    region: oregon           # keep consistent; pick the region closest to you
+    autoDeploy: false        # avoid surprise restarts that flap the online status
+    buildCommand: npm i -g @okxweb3/a2a-node@0.1.10 @anthropic-ai/claude-code
+    # doctor --fix binds the claude provider (authed via ANTHROPIC_API_KEY) and
+    # gets the daemon ready; then `run` blocks in the foreground (what a worker needs).
+    startCommand: >-
+      bash deploy/restore-identity.sh &&
+      okx-a2a config provider --provider claude &&
+      okx-a2a doctor --fix --non-interactive &&
+      okx-a2a run
+    disk:
+      name: okx-agent-state
+      mountPath: /var/okx-home   # HOME points here so ~/.okx-agent-task persists
+      sizeGB: 1
+    envVars:
+      - key: HOME
+        value: /var/okx-home
+      - key: ANTHROPIC_API_KEY
+        sync: false            # set in the Render dashboard — NEVER commit it
+      - key: OKX_IDENTITY_PASSPHRASE
+        sync: false            # decrypts deploy/okx-identity.tgz.enc on first boot; dashboard-only
