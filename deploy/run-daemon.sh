@@ -34,17 +34,32 @@ start_daemon() {
   okx-a2a daemon start --no-autostart
 }
 
+daemon_up() {
+  # Robust liveness: status must report an ACTIVE pid, i.e. "running pid=<n>".
+  # (status exits 0 even when stale, and prints "stale pid=..." when down, so we
+  # must match the exact healthy form — not just the substring "running" and not
+  # the exit code.)
+  okx-a2a status 2>/dev/null | grep -Eq "running pid=[0-9]+"
+}
+
 echo "[run-daemon] starting daemon (no autostart)"
 start_daemon || echo "[run-daemon] initial start returned non-zero — supervision loop will retry"
 
+# Let the daemon settle before the first health check so we don't restart a
+# perfectly healthy daemon that's still finishing startup (the earlier flap).
+sleep 10
+
 echo "[run-daemon] entering supervision loop"
 # Keep the container alive (a worker dies when its foreground process exits) and
-# keep the daemon up. Only act when it is actually down.
+# keep the daemon up. Only (re)start when it is genuinely down.
 while true; do
-  if ! okx-a2a status 2>/dev/null | grep -q "running"; then
+  if daemon_up; then
+    :   # healthy — do nothing (no flapping)
+  else
     echo "[run-daemon] daemon not running — (re)starting"
     okx-a2a daemon autostart uninstall 2>/dev/null || true
     start_daemon || true
+    sleep 10   # give it time to come up before re-checking
   fi
   sleep 30
 done
