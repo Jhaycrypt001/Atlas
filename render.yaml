@@ -19,8 +19,8 @@ services:
     plan: starter            # background workers require a paid plan (no free worker tier)
     region: oregon           # keep consistent; pick the region closest to you
     autoDeploy: false        # avoid surprise restarts that flap the online status
-    # Install the daemon, the headless AI CLI, AND the onchainos binary (needed by
-    # the daemon's `agent refresh`; it is a standalone installer, not an npm pkg).
+    # Build installs ONLY the global npm packages. The persistent disk ($HOME) is
+    # NOT mounted at build time, so anything touching the disk lives in startCommand.
     buildCommand: bash deploy/build.sh
     # CRITICAL: `okx-a2a run` must always execute and stay in the foreground — it is
     # what keeps the worker alive and the agent online. Earlier the chain used `&&`,
@@ -29,6 +29,7 @@ services:
     # best-effort and `run` ALWAYS starts.
     startCommand: >-
       bash deploy/restore-identity.sh;
+      bash deploy/install-onchainos.sh;
       export PATH="$HOME/.local/bin:$PATH";
       okx-a2a config provider --provider claude;
       okx-a2a doctor --fix --non-interactive || true;
