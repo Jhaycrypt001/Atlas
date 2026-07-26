@@ -16,11 +16,11 @@ npm run asp                   # starts the full ASP server + live UI  ->  :4173
 
 Then open **http://localhost:4173/app**:
 
-1. **Connect wallet** (MetaMask / OKX Wallet) — it switches you to X Layer testnet.
+1. **Connect wallet** (MetaMask / OKX Wallet) — it switches you to X Layer mainnet.
 2. Type an instruction — e.g. `Pay 0x7099… 5 USDC for the logo`.
 3. Sign the two prompts (approve + lock). The agent verifies and releases. **Funds move from *your* wallet, non-custodially — the agent never holds them.**
 
-Each ledger row links to the real transaction on the X Layer explorer. Every transaction is real testnet settlement — there is no simulation mode.
+Each ledger row links to the real transaction on the X Layer explorer. Every transaction is real on-chain settlement — there is no simulation mode.
 
 > **Two paths:** the **connected-wallet** flow above is user-funded and always on. There is also an agent-funded **demo** path (`POST /intent`) that spends the agent's own key — it is **disabled by default** and must be explicitly enabled with `DEMO_MODE=1` for a trusted local demo. See [Security](#security).
 
@@ -31,7 +31,7 @@ Each ledger row links to the real transaction on the X Layer explorer. Every tra
 | Claim | Where to verify |
 |---|---|
 | Funds settle on-chain, non-custodially | `contracts/Escrow.sol` — `lock()` pulls funds, `release()` pays payee `amount − fee` and treasury the fee, `refund()` returns funds. Every capability routes through it. |
-| Deployed and exercised on X Layer testnet | `deployments/testnet-1952.json` — live contract addresses + transaction hashes on chain `1952`. |
+| Deployed and exercised on X Layer mainnet | `deployments/mainnet-196.json` — live contract addresses + transaction hashes on chain `196`. |
 | The agent understands real language | `src/kernel/llm.ts` — an LLM extracts intent, amount, recipient, and capability from free text. |
 | Payments are billable per call | `src/kernel/x402.ts` — OKX **x402**: a `402` challenge, an EIP-3009-style signed authorization, a `PAYMENT-RESPONSE` settlement proof. |
 | Revenue is provable | A 0.5% fee (`FEE_BPS`) is skimmed on every settlement and accrues on-chain. |
@@ -63,7 +63,7 @@ Atlas speaks the open **Agent Social Protocol (`asp/1.0`)** that OKX.AI discover
 | POST | `/asp/run` | The `run()` surface. Free by default; with `ASP_PAID=1` it returns a `402` challenge, then executes after a valid payment signature. |
 
 - **ASP-Sig** — `Authorization: ASP-Sig {handle}:{ts}:{sig}`, signing `{handle}:{ts}:{method}:{path}` with Ed25519, inside a ±5 minute replay window. The signing key is stable across restarts (`ASP_PRIVATE_KEY` in `.env`), so Atlas keeps one identity.
-- **x402** — the `402` body advertises `eip155:1952`, the token, the amount, and the treasury recipient. The client signs an EIP-3009-style authorization and replays it. The server verifies the signature, settles through the non-custodial escrow, and returns a `PAYMENT-RESPONSE` proof.
+- **x402** — the `402` body advertises `eip155:196`, the token, the amount, and the treasury recipient. The client signs an EIP-3009-style authorization and replays it. The server verifies the signature, settles through the non-custodial escrow, and returns a `PAYMENT-RESPONSE` proof.
 
 ---
 
@@ -86,17 +86,17 @@ A minimal kernel, extended entirely through plugins. Settlement is an interface 
 Create `.env`:
 
 ```bash
-XLAYER_RPC=https://testrpc.xlayer.tech
-XLAYER_CHAIN_ID=1952
-PK=0x...                    # funded X Layer testnet key (agent's wallet)
-XLAYER_USDC=0x...           # TestUSDC address (see deployments/testnet-1952.json)
+XLAYER_RPC=https://rpc.xlayer.tech
+XLAYER_CHAIN_ID=196
+PK=0x...                    # funded X Layer mainnet key (agent's wallet)
+XLAYER_USDC=0x74b7F16337b8972027F6196A17a631aC6dE26d22   # canonical X Layer USDC (EIP-3009)
 XLAYER_TREASURY=0x...       # where the 0.5% fee accrues
-XLAYER_ATTESTATION=0x...    # deployed Attestation contract
+XLAYER_ATTESTATION=0x93a84f111d9f82b4bbbde830f5f91a254d3c547f  # deployed Attestation contract
 LLM_API_KEY=...             # LLM planner
 ASP_PRIVATE_KEY=.keys/asp-ed25519.pem   # stable ASP identity
 ```
 
-Get testnet OKB (gas) and tokens from the X Layer faucet. Each pay-and-verify flow is roughly three transactions, so keep a small gas buffer.
+Fund the agent wallet with OKB (gas) and USDC on X Layer mainnet. Each pay-and-verify flow is roughly three transactions, so keep a small gas buffer.
 
 ## Commands
 
@@ -108,7 +108,7 @@ npm run demo           # concurrent real on-chain run, printed to the terminal
 
 # contracts
 node scripts/compile.mjs             # compile contracts/ -> artifacts/
-node scripts/deploy.mjs xlayerTestnet  # deploy + exercise the escrow on X Layer testnet
+node scripts/deploy-mainnet.mjs        # deploy the escrow/attestation on X Layer mainnet (196)
 ```
 
 ---
@@ -118,7 +118,7 @@ node scripts/deploy.mjs xlayerTestnet  # deploy + exercise the escrow on X Layer
 - **Non-custodial by construction.** The agent's key deploys the escrow and triggers `release`/`refund`, but the contract, not the agent, holds the funds and enforces who gets paid. A compromised agent key cannot redirect escrowed money.
 - **Concurrent, not scripted.** Tasks run in parallel through a scheduler with a manual nonce counter, so overlapping transactions from one wallet don't collide. The live ledger shows several tasks progressing at once.
 - **Real language in, real settlement out.** An LLM turns free text into a typed intent; the intent drives a real contract call. Amounts are normalized to base units regardless of how they're phrased.
-- **Mainnet path.** `TestUSDC` is the demo stablecoin on testnet. Moving to mainnet is an address swap — point `XLAYER_USDC` at the canonical stablecoin; no code changes, since everything speaks the standard ERC-20 interface.
+- **Mainnet.** Atlas runs on X Layer **mainnet** (chain `196`) against the canonical USDC (`0x74b7F163…6d22`). Settlement speaks the standard ERC-20 / EIP-3009 interface, so the stablecoin is a single address swap with no code changes.
 
 ---
 
