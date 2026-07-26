@@ -22,7 +22,7 @@ if (!process.env.PK || process.env.PK.includes('PASTE')) {
 }
 const { ledger, scheduler, asp, settlement } = buildAgent();
 
-const EXPLORER = process.env.XLAYER_EXPLORER || 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+const EXPLORER = process.env.XLAYER_EXPLORER || 'https://www.oklink.com/xlayer/tx/';
 const PORT = Number(process.env.UI_PORT || 4173);
 
 // Top up test tokens once so the live demo doesn't drain the agent balance.

@@ -34,7 +34,7 @@ const { ledger, scheduler, asp, sig, settlement, planner } = buildAgent();
 // Cloud hosts inject the port via PORT; fall back to UI_PORT then 4173 for local.
 const PORT = Number(process.env.PORT || process.env.UI_PORT || 4173);
 const PAID = process.env.ASP_PAID === '1' || process.env.ASP_PAID === 'true';
-const EXPLORER = process.env.XLAYER_EXPLORER || 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+const EXPLORER = process.env.XLAYER_EXPLORER || 'https://www.oklink.com/xlayer/tx/';
 const HANDLE = process.env.ASP_HANDLE || 'atlas';
 // DEMO_MODE enables the agent-FUNDED /intent path (agent spends its own funds
 // on any request). OFF by default — it's unauthenticated, so on a public host

@@ -45,7 +45,7 @@ const TESTNET_USDC = '0x732cec1df06a48c596408ab1d95ee109a3179364';
 /** Canonical USDC on X Layer mainnet (okx/xlayer-tokenlist; EIP-3009 capable). */
 const MAINNET_USDC = '0x74b7f16337b8972027f6196a17a631ac6de26d22';
 function assertMainnetSafe(): void {
-  if (Number(process.env.XLAYER_CHAIN_ID || 1952) !== 196) return; // testnet — skip
+  if (Number(process.env.XLAYER_CHAIN_ID || 196) !== 196) return; // non-mainnet — skip
   const usdc = (process.env.XLAYER_USDC || '').toLowerCase();
   if (usdc === TESTNET_USDC) {
     throw new Error('Refusing to start on mainnet with the testnet TestUSDC address. Set XLAYER_USDC to the canonical USDC on X Layer mainnet.');

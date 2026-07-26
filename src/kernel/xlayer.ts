@@ -14,8 +14,8 @@ import { createPublicClient, createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { Settlement, SettlementTx, FEE_BPS } from './settlement';
 
-const RPC = process.env.XLAYER_RPC || 'https://testrpc.xlayer.tech';
-const CHAIN_ID = Number(process.env.XLAYER_CHAIN_ID || 1952);
+const RPC = process.env.XLAYER_RPC || 'https://rpc.xlayer.tech';
+const CHAIN_ID = Number(process.env.XLAYER_CHAIN_ID || 196);
 const USDC = (process.env.XLAYER_USDC || '0x0000000000000000000000000000000000000000') as `0x${string}`;
 const TREASURY = (process.env.XLAYER_TREASURY || '0x0000000000000000000000000000000000000000') as `0x${string}`;
 const ATTESTATION = (process.env.XLAYER_ATTESTATION || '0x0000000000000000000000000000000000000000') as `0x${string}`;

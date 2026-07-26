@@ -22,10 +22,9 @@ import crypto from 'node:crypto';
 import { privateKeyToAccount } from 'viem/accounts';
 import { verifyTypedData, type Hex } from 'viem';
 
-// Chain the x402 payment layer advertises. Env-driven so the same code serves
-// X Layer testnet (1952) or mainnet (196) — OKX.AI requires eip155:196 for
-// listing. Set XLAYER_CHAIN_ID=196 in .env to go to mainnet.
-export const X402_CHAIN_ID = Number(process.env.XLAYER_CHAIN_ID || 1952);
+// Chain the x402 payment layer advertises. Defaults to X Layer mainnet (196),
+// which OKX.AI requires (eip155:196) for listing. Env-overridable for testnet.
+export const X402_CHAIN_ID = Number(process.env.XLAYER_CHAIN_ID || 196);
 
 /** CAIP-2 network id, e.g. `eip155:196` for X Layer mainnet. */
 export const X402_NETWORK = `eip155:${X402_CHAIN_ID}` as const;

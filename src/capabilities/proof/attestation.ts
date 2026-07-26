@@ -22,8 +22,8 @@ export class AttestationAdapter implements ProofAdapter {
   attestFn?: (about: string, proofHash: string) => Promise<string>;
 
   constructor() {
-    const RPC = process.env.XLAYER_RPC || 'https://testrpc.xlayer.tech';
-    const CHAIN = Number(process.env.XLAYER_CHAIN_ID || 1952);
+    const RPC = process.env.XLAYER_RPC || 'https://rpc.xlayer.tech';
+    const CHAIN = Number(process.env.XLAYER_CHAIN_ID || 196);
     this.addr = (process.env.XLAYER_ATTESTATION || '0x0000000000000000000000000000000000000000') as `0x${string}`;
     const chain = {
       id: CHAIN,

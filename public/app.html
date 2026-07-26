@@ -506,7 +506,7 @@
           if (e.code === 4902) {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
-              params: [{ chainId: '0x' + c.chainId.toString(16), chainName: 'X Layer testnet', nativeCurrency: chain.nativeCurrency, rpcUrls: [c.rpc], blockExplorerUrls: ['https://www.okx.com/web3/explorer/xlayer-test'] }],
+              params: [{ chainId: '0x' + c.chainId.toString(16), chainName: 'X Layer', nativeCurrency: chain.nativeCurrency, rpcUrls: [c.rpc], blockExplorerUrls: ['https://www.oklink.com/xlayer'] }],
             });
           }
         }
@@ -550,7 +550,7 @@
         const chain = chainObj(c);
         const pub = createPublicClient({ chain, transport: http(c.rpc) });
 
-        const exp = 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+        const exp = 'https://www.oklink.com/xlayer/tx/';
         const txLink = (h) => `<a class="mono" target="_blank" href="${exp}${h}">${short(h)}</a>`;
 
         // Step 1 — plan + deploy escrow (server).
@@ -628,7 +628,7 @@
         const c = await loadCfg();
         const chain = chainObj(c);
         const pub = createPublicClient({ chain, transport: http(c.rpc) });
-        const exp = 'https://www.okx.com/web3/explorer/xlayer-test/tx/';
+        const exp = 'https://www.oklink.com/xlayer/tx/';
 
         // Build a stepper: one line per recipient, plus a deploy line.
         const legSteps = recipients.map((r, i) => ({ key: 'leg' + i, label: `Recipient ${i + 1} — ${short(r)}` }));

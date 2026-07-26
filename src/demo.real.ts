@@ -1,7 +1,7 @@
 // REAL end-to-end agent run on X Layer testnet.
 // Proves the agent (planner -> scheduler -> capability -> real escrow) executes
 // concurrent on-chain transactions.
-// Requires .env: PK (funded), XLAYER_RPC, XLAYER_CHAIN_ID=1952, XLAYER_USDC.
+// Requires .env: PK (funded), XLAYER_RPC, XLAYER_CHAIN_ID=196, XLAYER_USDC.
 import 'dotenv/config';
 import { buildAgent } from './index';
 
