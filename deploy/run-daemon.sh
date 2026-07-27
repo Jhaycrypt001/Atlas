@@ -123,6 +123,17 @@ else
             || echo "[run-daemon] ERROR listener still down — see $TASK_HOME/logs/listener.log"
 fi
 
+# Surface the LISTENER log into Render's log stream. Without this the only thing
+# Render shows is this script's own echoes, so inbound A2A events, the AI subsession
+# and any handler errors are completely invisible — every diagnosis becomes guesswork.
+# Backgrounded `tail -F` (capital F: survives the file being rotated/recreated).
+echo "[run-daemon] tailing listener log into Render stream"
+touch "$TASK_HOME/logs/listener.log" 2>/dev/null || true
+tail -F -n 50 "$TASK_HOME/logs/listener.log" 2>/dev/null | sed -u 's/^/[listener] /' &
+TAIL_PID=$!
+# Don't let the tail outlive us if the container is signalled.
+trap 'kill "$TAIL_PID" 2>/dev/null || true' EXIT INT TERM
+
 # Announce online to OKX now that the daemon is up (see refresh_agent).
 refresh_agent
 
