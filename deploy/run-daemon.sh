@@ -20,6 +20,28 @@ echo "[run-daemon] best-effort onchainos install"
 bash deploy/install-onchainos.sh || true
 export PATH="$HOME/.local/bin:$PATH"
 
+# REQUIRED: restore the onchainos WALLET SESSION ($HOME/.onchainos), which is a
+# different directory from the a2a identity handled above. The daemon's XMTP layer
+# shells out to `onchainos agent get` to enumerate agents; with no session that
+# fails, initXmtpInstall fails, and the daemon comes up with clients=0 — listening
+# to nothing while `agent refresh` still reports the agent ONLINE. Hard-fail here:
+# a daemon with no session cannot receive a single task, so booting on is pointless.
+echo "[run-daemon] restoring onchainos wallet session"
+if ! bash deploy/restore-onchainos-session.sh; then
+  echo "[run-daemon] FATAL: no usable onchainos session — the daemon would run with clients=0" >&2
+  exit 1
+fi
+
+# Prove the session actually authenticates before we build anything on top of it.
+echo "[run-daemon] verifying onchainos session"
+if onchainos agent get --page 1 --page-size 50 >/dev/null 2>&1; then
+  echo "[run-daemon] onchainos session OK"
+else
+  echo "[run-daemon] FATAL: onchainos session present but not accepted by the backend." >&2
+  echo "[run-daemon]        Re-run 'onchainos wallet login' locally, re-pack, update OKX_ONCHAINOS_SESSION_B64." >&2
+  exit 1
+fi
+
 # REQUIRED: install the onchainos skills so Claude knows the A2A task protocol.
 # Without them the daemon's "Read the okx-agent-task skill" tip resolves to nothing
 # and the agent never replies -> OKX task times out (the review failure we're fixing).
@@ -122,6 +144,29 @@ else
   daemon_up && echo "[run-daemon] listener verified up on retry" \
             || echo "[run-daemon] ERROR listener still down — see $TASK_HOME/logs/listener.log"
 fi
+
+# A live process is NOT the same as a working agent. The failure that cost us the
+# review was `initialized=false, clients=0` — daemon up, XMTP clients zero, so no
+# task could ever arrive while `agent refresh` still reported ONLINE. Assert on the
+# client count explicitly so this can never again hide behind a green boot log.
+check_clients() {
+  local line
+  line="$(grep -a -o 'init done: initialized=[a-z]*, clients=[0-9]*, failures=[0-9]*' \
+            "$TASK_HOME/logs/listener.log" 2>/dev/null | tail -n1)"
+  if [ -z "$line" ]; then
+    echo "[run-daemon] WARN could not find XMTP init line in listener log yet"
+    return 0
+  fi
+  echo "[run-daemon] xmtp $line"
+  case "$line" in
+    *clients=0,*)
+      echo "[run-daemon] ERROR XMTP clients=0 — the agent is listening to NOTHING." >&2
+      echo "[run-daemon]       Almost always an expired/absent onchainos session." >&2
+      return 1 ;;
+  esac
+  return 0
+}
+check_clients || true
 
 # Surface the LISTENER log into Render's log stream. Without this the only thing
 # Render shows is this script's own echoes, so inbound A2A events, the AI subsession

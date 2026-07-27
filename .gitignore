@@ -22,3 +22,11 @@ scratch/
 *.sqlite-shm
 *.sqlite-wal
 !deploy/okx-identity.tgz.enc
+
+# onchainos wallet session bundle (deploy/pack-onchainos-session.sh output). This
+# holds keyring.enc — the OWNER WALLET's private key material — plus a live session
+# credential. This repo is PUBLIC, so it must never be committed in any form,
+# encrypted or not. It travels as the Render env var OKX_ONCHAINOS_SESSION_B64.
+onchainos-session.b64
+*.b64
+.onchainos/
