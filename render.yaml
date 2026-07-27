@@ -42,7 +42,14 @@ services:
       # The daemon reads this env override BEFORE any on-disk sqlite flag.
       - key: OKX_A2A_AI_PERMISSION_PRESET
         value: bypass
+      # Working dir for the AI subsession. MUST NOT be $HOME/.okx-agent-task/workspace:
+      # the daemon rm -rf's that on every start, so the agent brief (CLAUDE.md) would be
+      # wiped before Claude ever read it. run-daemon.sh copies deploy/agent/CLAUDE.md here.
+      - key: OKX_A2A_AI_CWD
+        value: /var/okx-home/atlas-ai
       - key: ANTHROPIC_API_KEY
         sync: false            # set in the Render dashboard — NEVER commit it
+      - key: OKX_ONCHAINOS_SESSION_B64
+        sync: false            # onchainos wallet session; dashboard-only, holds key material
       - key: OKX_IDENTITY_PASSPHRASE
         sync: false            # decrypts deploy/okx-identity.tgz.enc on first boot; dashboard-only

@@ -48,6 +48,21 @@ fi
 echo "[run-daemon] installing onchainos skills (required for A2A replies)"
 bash deploy/install-skills.sh || echo "[run-daemon] WARN skills install returned non-zero"
 
+# Install the agent brief where the AI subsession will actually read it.
+# The daemon's default AI cwd is $TASK_HOME/workspace, which ensureAiWorkspace()
+# rm -rf's on EVERY daemon start — a CLAUDE.md there would not survive. So we point
+# the subsession at a persistent dir via OKX_A2A_AI_CWD (the daemon checks that env
+# override BEFORE the workspace setting) and drop the brief in it.
+#
+# Without this the subsession has no idea what Atlas is and improvises from the raw
+# job text: it declined its own advertised escrow service on the false premise that
+# it was being asked to front the buyer's funds, and left the job at `created`.
+export OKX_A2A_AI_CWD="${OKX_A2A_AI_CWD:-$HOME/atlas-ai}"
+echo "[run-daemon] installing agent brief into $OKX_A2A_AI_CWD"
+mkdir -p "$OKX_A2A_AI_CWD"
+cp deploy/agent/CLAUDE.md "$OKX_A2A_AI_CWD/CLAUDE.md"
+echo "[run-daemon] agent brief installed ($(wc -c < "$OKX_A2A_AI_CWD/CLAUDE.md") bytes)"
+
 echo "[run-daemon] binding AI provider"
 okx-a2a config provider --provider claude || echo "[run-daemon] WARN provider bind failed"
 
