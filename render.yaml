@@ -42,11 +42,11 @@ services:
       # The daemon reads this env override BEFORE any on-disk sqlite flag.
       - key: OKX_A2A_AI_PERMISSION_PRESET
         value: bypass
-      # Working dir for the AI subsession. MUST NOT be $HOME/.okx-agent-task/workspace:
-      # the daemon rm -rf's that on every start, so the agent brief (CLAUDE.md) would be
-      # wiped before Claude ever read it. run-daemon.sh copies deploy/agent/CLAUDE.md here.
-      - key: OKX_A2A_AI_CWD
-        value: /var/okx-home/atlas-ai
+      # NOTE: OKX_A2A_AI_CWD is deliberately NOT set here — it does not work.
+      # a2a-node@0.1.10 startDaemon() hard-injects OKX_A2A_AI_CWD=<workspace> into the
+      # listener's env (dist/cli.js:1974), clobbering any value set here, and wipes that
+      # workspace on every start. The agent brief is installed by run-daemon.sh into
+      # $HOME/.claude/CLAUDE.md (user-level, loaded regardless of cwd) instead.
       - key: ANTHROPIC_API_KEY
         sync: false            # set in the Render dashboard — NEVER commit it
       - key: OKX_ONCHAINOS_SESSION_B64

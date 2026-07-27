@@ -49,19 +49,42 @@ echo "[run-daemon] installing onchainos skills (required for A2A replies)"
 bash deploy/install-skills.sh || echo "[run-daemon] WARN skills install returned non-zero"
 
 # Install the agent brief where the AI subsession will actually read it.
-# The daemon's default AI cwd is $TASK_HOME/workspace, which ensureAiWorkspace()
-# rm -rf's on EVERY daemon start — a CLAUDE.md there would not survive. So we point
-# the subsession at a persistent dir via OKX_A2A_AI_CWD (the daemon checks that env
-# override BEFORE the workspace setting) and drop the brief in it.
 #
-# Without this the subsession has no idea what Atlas is and improvises from the raw
+# OKX_A2A_AI_CWD DOES NOT WORK for this. Verified in a2a-node@0.1.10 dist/cli.js:
+# startDaemon() (:1940) calls ensureAiWorkspace() (:1869) which rm -rf's
+# $TASK_HOME/workspace, then spawns the listener with `OKX_A2A_AI_CWD: aiWorkingDir`
+# HARD-INJECTED into the child env (:1974) — clobbering whatever we exported. So the
+# AI subsession ALWAYS runs in $TASK_HOME/workspace, and that dir is wiped on every
+# daemon start. Render logs confirmed it: `AI session start ... cwd=/var/okx-home/
+# .okx-agent-task/workspace` while our brief sat unread in /var/okx-home/atlas-ai.
+#
+# The reliable channel is the USER-level memory file $HOME/.claude/CLAUDE.md, which
+# Claude Code loads for every session regardless of cwd. We write that as the primary,
+# and also drop a copy into the workspace AFTER daemon start (see install_brief below)
+# as a belt-and-suspenders for the project-level load.
+#
+# Without the brief the subsession has no idea what Atlas is and improvises from the raw
 # job text: it declined its own advertised escrow service on the false premise that
 # it was being asked to front the buyer's funds, and left the job at `created`.
-export OKX_A2A_AI_CWD="${OKX_A2A_AI_CWD:-$HOME/atlas-ai}"
-echo "[run-daemon] installing agent brief into $OKX_A2A_AI_CWD"
-mkdir -p "$OKX_A2A_AI_CWD"
-cp deploy/agent/CLAUDE.md "$OKX_A2A_AI_CWD/CLAUDE.md"
-echo "[run-daemon] agent brief installed ($(wc -c < "$OKX_A2A_AI_CWD/CLAUDE.md") bytes)"
+BRIEF_SRC="deploy/agent/CLAUDE.md"
+echo "[run-daemon] installing agent brief into $HOME/.claude/CLAUDE.md (user-level, cwd-independent)"
+mkdir -p "$HOME/.claude"
+cp "$BRIEF_SRC" "$HOME/.claude/CLAUDE.md"
+echo "[run-daemon] agent brief installed ($(wc -c < "$HOME/.claude/CLAUDE.md") bytes)"
+
+# Copy the brief into the daemon's real AI cwd. MUST be called AFTER `daemon start`,
+# because ensureAiWorkspace() wipes that dir as part of starting. Re-call after every
+# restart in the supervision loop for the same reason.
+install_brief_into_workspace() {
+  local ws="${OKX_AGENT_TASK_HOME:-$HOME/.okx-agent-task}/workspace"
+  if [ -d "$ws" ]; then
+    cp "$BRIEF_SRC" "$ws/CLAUDE.md" 2>/dev/null \
+      && echo "[run-daemon] agent brief copied into AI workspace ($ws)" \
+      || echo "[run-daemon] WARN could not copy brief into $ws"
+  else
+    echo "[run-daemon] WARN AI workspace $ws not present yet — user-level brief still applies"
+  fi
+}
 
 echo "[run-daemon] binding AI provider"
 okx-a2a config provider --provider claude || echo "[run-daemon] WARN provider bind failed"
@@ -160,6 +183,9 @@ else
             || echo "[run-daemon] ERROR listener still down — see $TASK_HOME/logs/listener.log"
 fi
 
+# The workspace only exists once the daemon has started (start wipes and recreates it).
+install_brief_into_workspace
+
 # A live process is NOT the same as a working agent. The failure that cost us the
 # review was `initialized=false, clients=0` — daemon up, XMTP clients zero, so no
 # task could ever arrive while `agent refresh` still reported ONLINE. Assert on the
@@ -215,6 +241,7 @@ while true; do
     okx-a2a daemon autostart uninstall 2>/dev/null || true
     start_daemon || true
     sleep 10   # give it time to come up before re-checking
+    install_brief_into_workspace   # start wiped the workspace -> re-drop the brief
     refresh_agent   # new XMTP session after restart -> must re-announce
     ticks=0
   fi
