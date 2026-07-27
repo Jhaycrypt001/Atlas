@@ -36,6 +36,12 @@ services:
     envVars:
       - key: HOME
         value: /var/okx-home
+      # REQUIRED so the headless `claude --print` subsession can run its onchainos/Bash
+      # tool calls without a human approver. Without this the preset falls back to "auto",
+      # tool calls are blocked, and the agent never replies -> OKX task times out.
+      # The daemon reads this env override BEFORE any on-disk sqlite flag.
+      - key: OKX_A2A_AI_PERMISSION_PRESET
+        value: bypass
       - key: ANTHROPIC_API_KEY
         sync: false            # set in the Render dashboard — NEVER commit it
       - key: OKX_IDENTITY_PASSPHRASE

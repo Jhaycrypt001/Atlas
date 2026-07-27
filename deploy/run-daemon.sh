@@ -20,8 +20,23 @@ echo "[run-daemon] best-effort onchainos install"
 bash deploy/install-onchainos.sh || true
 export PATH="$HOME/.local/bin:$PATH"
 
+# REQUIRED: install the onchainos skills so Claude knows the A2A task protocol.
+# Without them the daemon's "Read the okx-agent-task skill" tip resolves to nothing
+# and the agent never replies -> OKX task times out (the review failure we're fixing).
+echo "[run-daemon] installing onchainos skills (required for A2A replies)"
+bash deploy/install-skills.sh || echo "[run-daemon] WARN skills install returned non-zero"
+
 echo "[run-daemon] binding AI provider"
 okx-a2a config provider --provider claude || echo "[run-daemon] WARN provider bind failed"
+
+# REQUIRED: force the AI subsession to bypass permissions. In headless `claude
+# --print` there is no human to approve tool calls; in the default "auto" preset
+# the daemon's onchainos/Bash tool calls are BLOCKED ("AI tool was blocked by
+# permissions") and the task produces no reply -> timeout. The env var
+# OKX_A2A_AI_PERMISSION_PRESET=bypass (set in render.yaml) is the primary control;
+# this persists the same preset to the on-disk config as a belt-and-suspenders.
+echo "[run-daemon] forcing AI permission preset = bypass"
+okx-a2a config permissions --preset bypass || echo "[run-daemon] WARN could not persist bypass preset (env var still applies)"
 
 # CRITICAL: clear any stale autostart record left on the persistent disk by a
 # previous deploy. Without this, every daemon start is refused. Ignore errors
