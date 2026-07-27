@@ -33,7 +33,9 @@ if [ "$missing" -ne 0 ]; then
 fi
 
 # Refuse to pack an already-expired session — it would fail identically on Render.
-exp="$(sed -nE 's/.*"sessionKeyExpireAt"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$SRC/session.json" | head -n1)"
+# NB: quoted string in session.json ("sessionKeyExpireAt": "1793230852") — the
+# quotes must be optional-matched or this silently yields "" and the guard no-ops.
+exp="$(sed -nE 's/.*"sessionKeyExpireAt"[[:space:]]*:[[:space:]]*"?([0-9]+)"?.*/\1/p' "$SRC/session.json" | head -n1)"
 now="$(date +%s)"
 if [ -n "$exp" ] && [ "$exp" -le "$now" ]; then
   echo "[pack] ERROR: local session already expired — run 'onchainos wallet login' first." >&2

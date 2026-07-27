@@ -38,7 +38,9 @@ SESSION_FILE="${ONCHAINOS_DIR}/session.json"
 # Is there already a session on the disk that has NOT expired? If so leave it be —
 # the live state is authoritative (same rule as restore-identity.sh).
 if [ -f "$SESSION_FILE" ]; then
-  exp="$(sed -nE 's/.*"sessionKeyExpireAt"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$SESSION_FILE" | head -n1)"
+  # NB: the value is a QUOTED string in session.json ("sessionKeyExpireAt": "1793230852"),
+  # so the quotes are optional-matched — a bare-number-only regex silently yields "".
+  exp="$(sed -nE 's/.*"sessionKeyExpireAt"[[:space:]]*:[[:space:]]*"?([0-9]+)"?.*/\1/p' "$SESSION_FILE" | head -n1)"
   now="$(date +%s)"
   if [ -n "$exp" ] && [ "$exp" -gt "$now" ]; then
     days=$(( (exp - now) / 86400 ))
