@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
-# Best-effort install of the onchainos binary AT RUNTIME (the persistent disk,
-# where $HOME lives, is mounted now — unlike during build).
+# Install the onchainos CLI binary AT RUNTIME (the persistent disk, where $HOME
+# lives, is mounted now — unlike during build).
 #
-# onchainos is used by the daemon's `agent refresh`. If this fails, the daemon
-# still runs and stays online; only refresh is affected. So this script NEVER
-# exits non-zero — the caller continues regardless.
+# WHY THE OLD VERSION 404'd: it curled
+#   https://raw.githubusercontent.com/okx/onchainos-cli/main/install.sh
+# but there is no `okx/onchainos-cli` repo. OKX ships the CLI from
+# `okx/onchainos-skills`. Correct, documented one-liner (Linux/macOS):
+#   curl -sSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+# The official installer auto-detects the platform, downloads the latest stable
+# release from that repo's GitHub Releases, verifies its SHA256 against
+# checksums.txt, and installs the binary to $HOME/.local/bin.
+#
+# onchainos is what the Claude provider shells out to for task-side actions the
+# okx-ai skill drives (agent identity, file-upload/-download, message-eligible,
+# sensitive-words). The daemon itself (okx-a2a) does NOT need it to stay online or
+# to reply to chat, so this stays best-effort and NEVER exits non-zero — the
+# daemon still boots and we keep the logs.
 set -u
 
 BIN_DIR="$HOME/.local/bin"
@@ -15,20 +26,17 @@ if [ -x "$BIN_DIR/onchainos" ]; then
   exit 0
 fi
 
-echo "[install-onchainos] attempting best-effort install"
+echo "[install-onchainos] installing from okx/onchainos-skills (best-effort)"
 mkdir -p "$BIN_DIR" || { echo "[install-onchainos] cannot create $BIN_DIR — skipping"; exit 0; }
 
-if bash -c '
-  set -e
-  cd "$(mktemp -d)"
-  curl -fsSL https://raw.githubusercontent.com/okx/onchainos-cli/main/install.sh -o install.sh
-  curl -fsSL https://raw.githubusercontent.com/okx/onchainos-cli/main/installer-checksums.txt -o installer-checksums.txt
-  sha256sum -c installer-checksums.txt --ignore-missing
-  bash install.sh
-'; then
-  echo "[install-onchainos] installed OK"
+if curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh; then
+  if [ -x "$BIN_DIR/onchainos" ]; then
+    echo "[install-onchainos] installed OK -> $BIN_DIR/onchainos"
+  else
+    echo "[install-onchainos] WARN: installer ran but binary not at $BIN_DIR/onchainos"
+  fi
 else
-  echo "[install-onchainos] WARN: install skipped/failed — daemon still runs; only agent refresh is affected"
+  echo "[install-onchainos] WARN: install failed — daemon still runs; only task-side onchainos actions are affected"
 fi
 
 exit 0
