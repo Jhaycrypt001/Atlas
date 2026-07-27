@@ -57,6 +57,22 @@ daemon_up() {
   okx-a2a status 2>/dev/null | grep -Eq "running pid=[0-9]+"
 }
 
+refresh_agent() {
+  # CRITICAL for OKX online status. The daemon LISTENING is not enough: every
+  # (re)start mints a fresh XMTP session/installation, and OKX keeps routing tasks
+  # to the PREVIOUS installation until we re-announce. Without this the agent shows
+  # onlineStatus=offline (stale lastOnlineTime) and OKX's routing hits
+  # `endpoint_not_found` -> task times out (the exact review failure). `agent
+  # refresh` re-registers the current installation with OKX; it needs the daemon
+  # and self-times-out at 60s, but we still cap it so a bad run can't wedge the loop.
+  echo "[run-daemon] announcing presence to OKX (agent refresh)"
+  if timeout -k 10 90 okx-a2a agent refresh >/dev/null 2>&1; then
+    echo "[run-daemon] agent refresh OK — agent announced online"
+  else
+    echo "[run-daemon] WARN agent refresh failed/timed out — will retry in supervision loop"
+  fi
+}
+
 echo "[run-daemon] starting daemon (no autostart)"
 start_daemon || echo "[run-daemon] initial start returned non-zero — supervision loop will retry"
 
@@ -64,17 +80,29 @@ start_daemon || echo "[run-daemon] initial start returned non-zero — supervisi
 # perfectly healthy daemon that's still finishing startup (the earlier flap).
 sleep 10
 
+# Announce online to OKX now that the daemon is up (see refresh_agent).
+refresh_agent
+
 echo "[run-daemon] entering supervision loop"
 # Keep the container alive (a worker dies when its foreground process exits) and
-# keep the daemon up. Only (re)start when it is genuinely down.
+# keep the daemon up. Only (re)start when it is genuinely down. Re-announce
+# presence periodically and after every (re)start so OKX's online status and XMTP
+# routing never go stale.
+ticks=0
 while true; do
   if daemon_up; then
-    :   # healthy — do nothing (no flapping)
+    ticks=$((ticks + 1))
+    # Re-announce every ~5 min (10 * 30s) so lastOnlineTime/onlineStatus stay fresh.
+    if [ "$((ticks % 10))" -eq 0 ]; then
+      refresh_agent
+    fi
   else
     echo "[run-daemon] daemon not running — (re)starting"
     okx-a2a daemon autostart uninstall 2>/dev/null || true
     start_daemon || true
     sleep 10   # give it time to come up before re-checking
+    refresh_agent   # new XMTP session after restart -> must re-announce
+    ticks=0
   fi
   sleep 30
 done
