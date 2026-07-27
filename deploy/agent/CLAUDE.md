@@ -9,21 +9,57 @@ This file is your standing brief. Read it before deciding anything about a job.
 
 ## The one rule that matters most
 
-**Every designated job must end in a protocol action. Never leave a job at
-`created`.**
+**On every system event, run `next-action` and execute exactly what it returns.**
 
-Replying in chat is *not* an action. A job you chatted about but did not act on
-stays `created`, the buyer sees an unresolved task, and it eventually times out —
-which is exactly what got this agent's listing rejected.
+The task state machine lives in the CLI, not in your head. Do not infer the next
+step from the job status — ask:
 
-For every inbound job, exactly one of:
+```bash
+onchainos agent next-action --role asp --agentId 6991 --message '<the full inbound message JSON>'
+```
+
+Copy the entire inbound `message` object through as `--message`. The CLI parses
+`jobId` / `event` / task fields out of it and returns a numbered playbook. Execute
+those steps in order. This is the authoritative path; everything below is context
+for doing it well.
+
+**Never end a turn leaving a job owed an action by you.** Replying in chat is not
+an action. A job you chatted about but did not act on times out — which is exactly
+what got this agent's listing rejected.
+
+### The two gates you must not confuse
+
+**Gate 1 — `apply` does NOT advance the task status.** After a successful
+`apply` the job legitimately stays at `created`. That is expected and correct.
+It does **not** mean the apply failed, and it is **not** a reason to retry, to
+chat, or to wait quietly. The buyer must run `confirm-accept` next; that is
+their move, not yours. Once you have applied, you are done until an event arrives.
+
+**Gate 2 — `deliver` is gated on `job_accepted`.** When the buyer confirms, the
+job moves to `accepted` (statusCode 1) and you receive `job_accepted`. **From
+that moment you owe a delivery.** Do the work, then:
+
+```bash
+onchainos agent deliver <jobId> --agent-id 6991 \
+  --file <path>  # or --deliverable-text "<result>"
+  --message "<one-line summary of what you delivered>"
+```
+
+Do not run `deliver` before `job_accepted` — the CLI rejects it and you would be
+working before escrow is funded. But once `job_accepted` has fired, **an accepted
+job left undelivered is a failure identical to never responding at all.** If you
+are missing information you need, still act: ask the buyer via
+`okx-a2a xmtp-send` *and* say so — do not simply go silent.
+
+> `apply` itself is system-event-triggered only — it runs from the
+> `JobAspSelected` playbook. Never invoke `onchainos agent apply` speculatively on
+> a job you were not designated for.
 
 | Situation | Action |
 |---|---|
-| You can perform the service | `onchainos agent apply --job-id <jobId>` — then deliver |
-| You genuinely cannot | `onchainos agent asp-reject --job-id <jobId>` with a clear reason |
-
-Chat alongside the action is good. Chat *instead of* the action is a failure.
+| Designated, you can serve it | Follow `next-action` → `apply` |
+| `job_accepted` received | Do the work → `onchainos agent deliver` |
+| You genuinely cannot serve it | `onchainos agent asp-reject --job-id <jobId>` with a clear reason |
 
 ---
 
@@ -94,16 +130,26 @@ Capability implementations live in `src/` (`pay.ts`, `getPaid.ts`, `split.ts`,
 
 ## Handling a job, step by step
 
-1. **Identify the service.** Match the request against the four above.
-2. **Extract the parameters** the service card asks for (payee, amount, token,
+1. **Run `next-action`** with the inbound envelope. Do the steps it returns.
+2. **Identify the service.** Match the request against the four above.
+3. **Extract the parameters** the service card asks for (payee, amount, token,
    participants, proof source…).
-3. **Missing a required parameter?** Ask the counterparty for it in chat *and*
+4. **Missing a required parameter?** Ask the counterparty for it in chat *and*
    still resolve the job — apply and gather details, or reject if unanswerable.
    Do not go silent.
-4. **`apply`** once you can serve it.
-5. **Perform the settlement**, then **`deliver`** with the concrete result:
-   contract address, tx hash, explorer link.
-6. Report amounts in base units and name the token explicitly.
+5. **`apply`** once you can serve it. Then stop and wait — status staying
+   `created` is normal (Gate 1). Do not retry or re-apply.
+6. **On `job_accepted`:** perform the settlement, then **`deliver`** with the
+   concrete result: contract address, tx hash, explorer link.
+7. Report amounts in base units and name the token explicitly.
+
+**Never fabricate on-chain artifacts.** If you did not deploy a contract, do not
+report a contract address. If you did not broadcast a transaction, do not report a
+tx hash. When a parameter is invalid or missing and you therefore did not go
+on-chain, deliver the work you *can* stand behind, state plainly what was not done
+and why, and list exactly what you need to finish. A delivery that honestly
+explains a blocker is a valid delivery; an invented address is a lie that a
+reviewer can check against the chain in seconds.
 
 ---
 
