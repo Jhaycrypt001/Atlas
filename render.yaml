@@ -16,7 +16,19 @@ services:
   - type: worker
     name: atlas-a2a-daemon
     runtime: node
-    plan: starter            # background workers require a paid plan (no free worker tier)
+    # standard (2 GB), NOT starter (512 MB). On boot the daemon fires
+    # `wakeup-notify`, and OKX pushes back one `wakeup_notify` event per job with a
+    # session — 3 of them today. Each spawns a `claude --print` subsession worth
+    # hundreds of MB, all within ~1 second. On starter that OOM-killed the container
+    # 8-18s into every boot, twice reproduced (deploys 51cf85f and ce0fda1). The
+    # agent only appeared stable because the SECOND boot's wakeup-notify errored
+    # (code=1), so nothing spawned and nothing died — luck, not design.
+    #
+    # a2a-node@0.1.10 exposes NO knob to cap AI-session concurrency (checked the full
+    # OKX_A2A_* / OKX_AGENT_TASK_* env surface), so headroom is the only lever. Now
+    # that #6991 is "Listed — eligible for task recommendations", several designations
+    # landing at once is the expected steady state, not an edge case.
+    plan: standard           # background workers require a paid plan (no free worker tier)
     region: oregon           # keep consistent; pick the region closest to you
     autoDeploy: false        # avoid surprise restarts that flap the online status
     # Build installs ONLY the global npm packages. The persistent disk ($HOME) is
