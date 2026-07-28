@@ -209,6 +209,87 @@ check_clients() {
 }
 check_clients || true
 
+# ---------------------------------------------------------------------------
+# Missed-designation reconciler.
+#
+# `JobAspSelected` is a LIVE, FIRE-ONCE XMTP event. If the daemon is down,
+# restarting, or mid-deploy at the moment a User Agent designates us, that event
+# is gone for good: startup replay reports `replayed=0`, and the `wakeup_notify`
+# burst OKX sends on boot only covers jobs that ALREADY have a session — i.e.
+# jobs we have talked on. A designation we never answered has no session, so it
+# is never re-delivered. The job sits at `created` forever while the agent
+# heartbeats ONLINE, and the buyer sees an unresponsive listing.
+#
+# Observed for real: job 0x9b3e…7c46 (User Agent #8234, Escrow Payment
+# Settlement, 0.1 USDT) sat untouched while the daemon was healthy, alongside 9
+# older `created` jobs from OKX's review harness.
+#
+# Fix: on boot and periodically, enumerate our ASP jobs still at `created` and
+# re-inject them via `okx-a2a session dispatch`, which runs the daemon's normal
+# AI session for that job. We deliberately do NOT `apply` from bash: dispatch
+# routes through `next-action`, so the capability/price judgement stays with the
+# LLM exactly as it would have on the live event.
+#
+# Two constraints this must respect:
+#   1. ONE JOB PER TICK. Every dispatch spawns a `claude --print` subsession
+#      (hundreds of MB). Firing all stale jobs at once is how you OOM a starter
+#      worker and get the container restarted mid-flight.
+#   2. DISPATCH EACH JOB ONCE, EVER. `apply` does NOT advance the status — an
+#      applied job legitimately stays at `created` until the buyer runs
+#      confirm-accept. Without a persisted marker this loop would re-dispatch
+#      and re-apply the same job forever.
+RECONCILE_STATE="$TASK_HOME/reconciled-jobs.txt"
+
+list_created_asp_jobs() {
+  onchainos agent active-tasks 2>/dev/null | node -e '
+    let s = "";
+    process.stdin.on("data", d => s += d).on("end", () => {
+      try {
+        const tasks = (JSON.parse(s) || {}).data?.tasks || [];
+        for (const t of tasks) {
+          if (t.myRole === "asp" && t.status === "created") console.log(t.jobId);
+        }
+      } catch (e) { /* no output -> nothing to reconcile */ }
+    });' 2>/dev/null
+}
+
+# One-time baseline. On a disk that has never run the reconciler, mark every job
+# that is ALREADY stale as seen instead of dispatching it. Two reasons: the 9
+# `created` jobs left over from OKX's review harness are dead test traffic we do
+# not want to spend gas applying to, and job 0x9b3e…7c46 was applied to by hand —
+# re-dispatching it would double-apply, because apply leaves the status at
+# `created` (Gate 1). From here on the reconciler only sees genuinely NEW misses.
+seed_reconcile_baseline() {
+  [ -e "$RECONCILE_STATE" ] && return 0
+  local seeded
+  seeded="$(list_created_asp_jobs)"
+  printf '%s\n' "$seeded" > "$RECONCILE_STATE" 2>/dev/null || return 0
+  echo "[run-daemon] reconciler: seeded baseline with $(grep -c . "$RECONCILE_STATE" 2>/dev/null || echo 0) pre-existing 'created' job(s) — these will NOT be auto-dispatched"
+}
+
+reconcile_one_stale_job() {
+  touch "$RECONCILE_STATE" 2>/dev/null || return 0
+
+  local candidates job
+  candidates="$(list_created_asp_jobs)" || return 0
+
+  [ -n "$candidates" ] || return 0
+
+  for job in $candidates; do
+    grep -qxF "$job" "$RECONCILE_STATE" 2>/dev/null && continue
+    echo "[run-daemon] reconciler: job ${job:0:10}… is still 'created' and was never dispatched — re-injecting"
+    # Record BEFORE dispatching: a dispatch that crashes the box must not be
+    # retried on the next boot, or a poison job becomes a restart loop.
+    echo "$job" >> "$RECONCILE_STATE"
+    if timeout -k 10 120 okx-a2a session dispatch --job-id "$job" >/dev/null 2>&1; then
+      echo "[run-daemon] reconciler: dispatched ${job:0:10}… — AI session will run next-action"
+    else
+      echo "[run-daemon] WARN reconciler: dispatch failed for ${job:0:10}… (marked; will not retry)"
+    fi
+    return 0   # one per tick, on purpose
+  done
+}
+
 # Surface the LISTENER log into Render's log stream. Without this the only thing
 # Render shows is this script's own echoes, so inbound A2A events, the AI subsession
 # and any handler errors are completely invisible — every diagnosis becomes guesswork.
@@ -223,6 +304,9 @@ trap 'kill "$TAIL_PID" 2>/dev/null || true' EXIT INT TERM
 # Announce online to OKX now that the daemon is up (see refresh_agent).
 refresh_agent
 
+# Establish the reconciler baseline before the loop can dispatch anything.
+seed_reconcile_baseline
+
 echo "[run-daemon] entering supervision loop"
 # Keep the container alive (a worker dies when its foreground process exits) and
 # keep the daemon up. Only (re)start when it is genuinely down. Re-announce
@@ -235,6 +319,9 @@ while true; do
     # Re-announce every ~5 min (10 * 30s) so lastOnlineTime/onlineStatus stay fresh.
     if [ "$((ticks % 10))" -eq 0 ]; then
       refresh_agent
+      # Same cadence: catch at most one designation we missed while down. Runs
+      # after refresh so the dispatch happens on a freshly announced session.
+      reconcile_one_stale_job
     fi
   else
     echo "[run-daemon] daemon not running — (re)starting"
