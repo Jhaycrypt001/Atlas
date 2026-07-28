@@ -238,6 +238,51 @@ check_clients || true
 #      applied job legitimately stays at `created` until the buyer runs
 #      confirm-accept. Without a persisted marker this loop would re-dispatch
 #      and re-apply the same job forever.
+# ---------------------------------------------------------------------------
+# Credit-exhaustion detector.
+#
+# This is the failure that cost us the first OKX review, and it is invisible from
+# every health signal we have: `claude --print` exits 1 in ~3s with
+# `result=stdout="Credit balance is too low"`, the daemon has nothing to send, and
+# OKX's task clock expires. Meanwhile the listener is fine (`clients=1`), the
+# heartbeat keeps landing, and the registry cheerfully reports `onlineStatus:1`.
+# A dead agent that looks perfectly healthy.
+#
+# A billing alert on the Anthropic account is the other half of this, but that is
+# a human email that can be missed. This is the half that lives with the daemon:
+# the signature is exact, so watch for it and shout. Alert on a RISING count, not
+# on presence, so a historical hit in a long-lived log doesn't latch the alarm on
+# forever — and so a fresh burst after a top-up still alerts.
+CREDIT_ALERT_STATE="$TASK_HOME/credit-alert.count"
+
+check_ai_credit() {
+  local log="$TASK_HOME/logs/listener.log"
+  [ -r "$log" ] || return 0
+
+  local hits prev
+  hits="$(grep -a -c 'Credit balance is too low' "$log" 2>/dev/null)" || true
+  case "${hits:-}" in ''|*[!0-9]*) hits=0 ;; esac
+  prev="$(cat "$CREDIT_ALERT_STATE" 2>/dev/null)" || true
+  case "${prev:-}" in ''|*[!0-9]*) prev=0 ;; esac
+
+  [ "$hits" -gt "$prev" ] || return 0
+  echo "$hits" > "$CREDIT_ALERT_STATE" 2>/dev/null || true
+
+  echo "[run-daemon] ==================== ALERT ===================="
+  echo "[run-daemon] ANTHROPIC API CREDIT IS EXHAUSTED ($hits failed subsession(s))."
+  echo "[run-daemon] Every inbound task will now time out while the agent still"
+  echo "[run-daemon] reports onlineStatus=1. Top up at console.anthropic.com/settings/billing"
+  echo "[run-daemon] (a Claude.ai subscription does NOT bill headless \`claude --print\`)."
+  echo "[run-daemon] ==============================================="
+
+  # Push it somewhere the operator actually looks, not just the Render stream.
+  timeout -k 5 30 onchainos agent user-notify --content \
+    "[Atlas #6991] Anthropic API credit exhausted — every inbound A2A task is timing out even though the agent reports online. Top up at console.anthropic.com/settings/billing to restore service." \
+    >/dev/null 2>&1 \
+    && echo "[run-daemon] credit alert pushed via user-notify" \
+    || echo "[run-daemon] WARN could not push credit alert (Render log above is the record)"
+}
+
 RECONCILE_STATE="$TASK_HOME/reconciled-jobs.txt"
 
 list_created_asp_jobs() {
@@ -316,6 +361,9 @@ ticks=0
 while true; do
   if daemon_up; then
     ticks=$((ticks + 1))
+    # Cheap (one grep) and the failure is urgent, so check every 30s tick rather
+    # than on the 5-minute cadence.
+    check_ai_credit
     # Re-announce every ~5 min (10 * 30s) so lastOnlineTime/onlineStatus stay fresh.
     if [ "$((ticks % 10))" -eq 0 ]; then
       refresh_agent
