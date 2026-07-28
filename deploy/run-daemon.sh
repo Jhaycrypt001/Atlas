@@ -250,20 +250,61 @@ check_clients || true
 #
 # A billing alert on the Anthropic account is the other half of this, but that is
 # a human email that can be missed. This is the half that lives with the daemon:
-# the signature is exact, so watch for it and shout. Alert on a RISING count, not
-# on presence, so a historical hit in a long-lived log doesn't latch the alarm on
-# forever — and so a fresh burst after a top-up still alerts.
+# the signature is exact, so watch for it and shout.
+#
+# Alert on a RISING count against a SEEDED baseline — never on presence. Both
+# halves are load-bearing and the first version shipped only the first half, which
+# false-alarmed immediately on deploy 9b7b372: listener.log is on the persistent
+# disk, so it still held 11 failures from the 2026-07-27 exhaustion, and the very
+# first tick compared 11 against a stored 0 and cried wolf about a problem fixed
+# the day before — while that same boot ran three subsessions at exitCode=0.
 CREDIT_ALERT_STATE="$TASK_HOME/credit-alert.count"
 
+count_credit_failures() {
+  local hits
+  hits="$(grep -a -c 'Credit balance is too low' "$TASK_HOME/logs/listener.log" 2>/dev/null)" || true
+  case "${hits:-}" in ''|*[!0-9]*) hits=0 ;; esac
+  echo "$hits"
+}
+
+# One-time baseline, same idea as the reconciler's. listener.log lives on the
+# PERSISTENT DISK, so on the first run of this detector it is already full of
+# historical failures from the 2026-07-27 exhaustion. Without seeding, the very
+# first tick compares 11 against 0 and screams about a problem that was fixed
+# yesterday — which is exactly what happened on the 9b7b372 deploy. Record what is
+# already there and alert only on what comes after.
+#
+# Seeding cannot mask a genuine ongoing outage: if credit really is dry, every new
+# inbound task adds another failure, so the count climbs past the baseline within a
+# tick or two and alerts normally.
+seed_credit_baseline() {
+  [ -e "$CREDIT_ALERT_STATE" ] && return 0
+  local hits
+  hits="$(count_credit_failures)"
+  echo "$hits" > "$CREDIT_ALERT_STATE" 2>/dev/null || true
+  if [ "$hits" -gt 0 ]; then
+    echo "[run-daemon] credit detector: baseline seeded at $hits historical failure(s) already on the persistent log — NOT current, will alert only on new ones"
+  fi
+  return 0
+}
+
 check_ai_credit() {
-  local log="$TASK_HOME/logs/listener.log"
-  [ -r "$log" ] || return 0
+  [ -r "$TASK_HOME/logs/listener.log" ] || return 0
 
   local hits prev
-  hits="$(grep -a -c 'Credit balance is too low' "$log" 2>/dev/null)" || true
-  case "${hits:-}" in ''|*[!0-9]*) hits=0 ;; esac
+  hits="$(count_credit_failures)"
   prev="$(cat "$CREDIT_ALERT_STATE" 2>/dev/null)" || true
   case "${prev:-}" in ''|*[!0-9]*) prev=0 ;; esac
+
+  # Log rotated or truncated: the stored high-water mark now refers to lines that
+  # no longer exist. Re-baseline downward, otherwise a stale prev of 11 would
+  # SUPPRESS a real alert until failures climbed past 11 all over again — the
+  # detector failing silently in precisely the situation it exists for.
+  if [ "$hits" -lt "$prev" ]; then
+    echo "$hits" > "$CREDIT_ALERT_STATE" 2>/dev/null || true
+    echo "[run-daemon] credit detector: listener log rotated (count $prev -> $hits), re-baselined"
+    return 0
+  fi
 
   [ "$hits" -gt "$prev" ] || return 0
   echo "$hits" > "$CREDIT_ALERT_STATE" 2>/dev/null || true
@@ -349,8 +390,9 @@ trap 'kill "$TAIL_PID" 2>/dev/null || true' EXIT INT TERM
 # Announce online to OKX now that the daemon is up (see refresh_agent).
 refresh_agent
 
-# Establish the reconciler baseline before the loop can dispatch anything.
+# Establish both baselines before the loop can dispatch or alert on anything.
 seed_reconcile_baseline
+seed_credit_baseline
 
 echo "[run-daemon] entering supervision loop"
 # Keep the container alive (a worker dies when its foreground process exits) and
